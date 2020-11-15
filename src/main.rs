@@ -19,6 +19,10 @@ pub struct BasicApp {
     #[nwg_control(text: "Say my name", size: (280, 70), position: (10, 50))]
     #[nwg_events( OnButtonClick: [BasicApp::say_hello] )]
     hello_button: nwg::Button,
+
+    #[nwg_control(interval: 1000, stopped: false)]
+    #[nwg_events( OnTimerTick: [BasicApp::timer_tick] )]
+    timer: nwg::Timer,
 }
 
 impl BasicApp {
@@ -39,27 +43,25 @@ impl BasicApp {
     }
 
     fn setup(&self) {
-        
+    }
+
+    fn timer_tick(&self) {
         let dst = std::env::args()
             .nth(1)
             .unwrap_or(String::from("1.1.1.1"))
             .parse::<IpAddr>()
             .expect("Could not parse IP Address");
 
-        println!("{}", dst);
-
         let pinger = Pinger::new().unwrap();
         let mut buffer = Buffer::new();
 
-        
         match pinger.send(dst, &mut buffer) {
             Ok(rtt) => {
                 let result = format!("Response time: {}", rtt);
                 self.name_edit.set_text(&result);
             }
             Err(err) => println!("{}.", err),
-        }
-
+        }    
     }
 }
 
