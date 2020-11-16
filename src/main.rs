@@ -23,6 +23,20 @@ pub struct BasicApp {
     #[nwg_control(interval: 1000, stopped: false)]
     #[nwg_events( OnTimerTick: [BasicApp::timer_tick] )]
     timer: nwg::Timer,
+
+    #[nwg_resource(source_file: Some("./resources/cog.ico"))]
+    icon: nwg::Icon,
+
+    #[nwg_control(icon: Some(&data.icon), tip: Some("Hello"))]
+    #[nwg_events(MousePressLeftUp: [BasicApp::show_menu], OnContextMenu: [BasicApp::show_menu])]
+    tray: nwg::TrayNotification,
+
+    #[nwg_control(parent: window, popup: true)]
+    tray_menu: nwg::Menu,
+
+    #[nwg_control(parent: tray_menu, text: "Hello")]
+    #[nwg_events(OnMenuItemSelected: [BasicApp::hello_menu_item])]
+    tray_item1: nwg::MenuItem,
 }
 
 impl BasicApp {
@@ -63,94 +77,27 @@ impl BasicApp {
             Err(err) => println!("{}.", err),
         }    
     }
-}
-
-
-#[derive(Default, NwgUi)]
-pub struct SystemTray {
-    #[nwg_control]
-    window: nwg::MessageWindow,
-
-    #[nwg_resource(source_file: Some("./resources/cog.ico"))]
-    icon: nwg::Icon,
-
-    #[nwg_control(icon: Some(&data.icon), tip: Some("Hello"))]
-    #[nwg_events(MousePressLeftUp: [SystemTray::show_menu], OnContextMenu: [SystemTray::show_menu])]
-    tray: nwg::TrayNotification,
-
-    #[nwg_control(parent: window, popup: true)]
-    tray_menu: nwg::Menu,
-
-    #[nwg_control(parent: tray_menu, text: "Hello")]
-    #[nwg_events(OnMenuItemSelected: [SystemTray::hello1])]
-    tray_item1: nwg::MenuItem,
-
-    #[nwg_control(parent: tray_menu, text: "Popup")]
-    #[nwg_events(OnMenuItemSelected: [SystemTray::hello2])]
-    tray_item2: nwg::MenuItem,
-
-    #[nwg_control(parent: tray_menu, text: "Exit")]
-    #[nwg_events(OnMenuItemSelected: [SystemTray::exit])]
-    tray_item3: nwg::MenuItem,
-}
-
-impl SystemTray {
 
     fn show_menu(&self) {
         let (x, y) = nwg::GlobalCursor::position();
         self.tray_menu.popup(x, y);
     }
 
-    fn hello1(&self) {
-        nwg::simple_message("Hello", "Hello World!");
-    }
     
-    fn hello2(&self) {
+    fn hello_menu_item(&self) {
         let flags = nwg::TrayNotificationFlags::USER_ICON | nwg::TrayNotificationFlags::LARGE_ICON;
         self.tray.show("Hello World", Some("Welcome to my application"), Some(flags), Some(&self.icon));
     }
-    
-    fn exit(&self) {
-        nwg::stop_thread_dispatch();
-    }
 
 }
+
+
 
 fn main() {
     nwg::init().expect("Failed to init Native Windows GUI");
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
 
     let _app = BasicApp::build_ui(Default::default()).expect("Failed to build UI");
-    let _tray = SystemTray::build_ui(Default::default()).expect("Failed to build UI");
 
     nwg::dispatch_thread_events();
 }
-
-/*
-fn main() {
-    let ip_arg = std::env::args().nth(1);
-    let ip_text = ip_arg.unwrap_or(String::from("8.8.8.8"));
-    let ip_addr = ip_text.parse::<IpAddr>().expect("Could not parse IP Address");
-
-    let dst = std::env::args()
-        .nth(1)
-        .unwrap_or(String::from("1.1.1.1"))
-        .parse::<IpAddr>()
-        .expect("Could not parse IP Address");
-
-    println!("{}",dst);
-
-    let pinger = Pinger::new().unwrap();
-    let mut buffer = Buffer::new();
-
-    for _ in 0..4 {
-        match pinger.send(dst, &mut buffer) {
-            Ok(rtt) => {
-                println!("Response time {} ms.", rtt);
-            }
-            Err(err) => println!("{}.", err),
-        }
-    }
-    println!("Hello, world!");
-}
- */
