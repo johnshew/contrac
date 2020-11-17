@@ -1,4 +1,4 @@
-Simple use std::cell::RefCell;
+use std::cell::RefCell;
 use std::net::IpAddr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use winping::{Buffer, Pinger};
