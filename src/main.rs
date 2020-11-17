@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::VecDeque;
 use std::net::IpAddr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use winping::{Buffer, Pinger};
@@ -86,7 +87,7 @@ impl BasicApp {
                 }
                 data.count += 1;
                 data.total += rtt;
-                data.probes.push((
+                data.probes.push_back((
                     SystemTime::now()
                         .duration_since(UNIX_EPOCH)
                         .expect("Clock issue")
@@ -121,7 +122,7 @@ pub struct MyData {
     total: u32,
     min: u32,
     max: u32,
-    probes: Vec<(u128, u32)>,
+    probes: VecDeque<(u128, u32)>,
 }
 
 impl Default for MyData {
@@ -131,7 +132,7 @@ impl Default for MyData {
             total: 0,
             min: 1000000,
             max: 0,
-            probes: Vec::new(),
+            probes: VecDeque::new(),
         }
     }
 }
