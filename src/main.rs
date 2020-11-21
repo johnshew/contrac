@@ -14,7 +14,7 @@ use nwg::NativeUi;
 pub struct BasicApp {
     data: RefCell<MyData>,
 
-    #[nwg_control(size: (300, 135), position: (300, 300), title: "Basic example", flags: "WINDOW|VISIBLE")]
+    #[nwg_control(size: (300, 135), position: (300, 300), title: "Basic example", flags: "MAIN_WINDOW|VISIBLE")]
     #[nwg_events( OnWindowClose: [BasicApp::say_goodbye], OnInit: [BasicApp::on_init] )]
     window: nwg::Window,
 
@@ -130,7 +130,7 @@ impl Default for MyData {
         MyData {
             count: 0,
             total: 0,
-            min: 1000000,
+            min: u32::MAX,
             max: 0,
             probes: VecDeque::new(),
         }
