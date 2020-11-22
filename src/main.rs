@@ -18,13 +18,6 @@ pub struct BasicApp {
     #[nwg_events( OnWindowClose: [BasicApp::say_goodbye], OnInit: [BasicApp::on_init] )]
     window: nwg::Window,
 
-    #[nwg_control(text: "Heisenberg", size: (280, 35), position: (10, 10), focus: true)]
-    name_edit: nwg::TextInput,
-
-    #[nwg_control(text: "Say my name", size: (280, 70), position: (10, 50))]
-    #[nwg_events( OnButtonClick: [BasicApp::say_hello] )]
-    hello_button: nwg::Button,
-
     #[nwg_control(interval: 1000, stopped: false)]
     #[nwg_events( OnTimerTick: [BasicApp::timer_tick] )]
     timer: nwg::Timer,
@@ -42,10 +35,32 @@ pub struct BasicApp {
     #[nwg_control(parent: tray_menu, text: "Hello")]
     #[nwg_events(OnMenuItemSelected: [BasicApp::hello_menu_item])]
     tray_item1: nwg::MenuItem,
+
+    // Main UX
+    #[nwg_layout(parent: window, spacing: 1)]
+    grid: nwg::GridLayout,
+
+    #[nwg_control(text: "Heisenberg", focus: true)]
+    #[nwg_layout_item(layout: grid, row: 0, col: 0)]
+    name_edit: nwg::TextInput,
+
+    #[nwg_control(text: "Say my name")]
+    #[nwg_layout_item(layout: grid, col: 0, row: 1, row_span: 2)]
+    #[nwg_events( OnButtonClick: [BasicApp::say_hello] )]
+    hello_button: nwg::Button,
+
+    #[nwg_control( flags:"VISIBLE|HORIZONTAL|RANGE")]
+    #[nwg_layout_item(layout: grid, col: 0, row: 3)]
+    slider: nwg::TrackBar,
 }
 
 impl BasicApp {
-    fn on_init(&self) {}
+    fn on_init(&self) {
+        self.slider.set_range_min(0);
+        self.slider.set_range_max(100);
+        self.slider.set_selection_range_pos(25..75);
+        self.slider.set_pos(50);
+    }
 
     fn say_hello(&self) {
         nwg::modal_info_message(
@@ -78,6 +93,7 @@ impl BasicApp {
             Ok(rtt) => {
                 let result = format!("Response time: {}", rtt);
                 self.name_edit.set_text(&result);
+                
                 let mut data = self.data.borrow_mut();
                 if rtt < data.min {
                     data.min = rtt;
@@ -94,6 +110,8 @@ impl BasicApp {
                         .as_millis(),
                     rtt,
                 ));
+                self.slider.set_pos(rtt as usize);
+                self.slider.set_selection_range_pos(data.min as usize..data.max as usize);
             }
             Err(err) => println!("{}.", err),
         }
@@ -107,13 +125,9 @@ impl BasicApp {
     fn hello_menu_item(&self) {
         let flags = nwg::TrayNotificationFlags::USER_ICON | nwg::TrayNotificationFlags::LARGE_ICON;
         let data = self.data.borrow();
-        let message = format!("{}ms ({},{})",data.total/data.count,data.min,data.max);
-        self.tray.show(
-            "Status",
-            Some(&message),
-            Some(flags),
-            Some(&self.icon),
-        );
+        let message = format!("{}ms ({},{})", data.total / data.count, data.min, data.max);
+        self.tray
+            .show("Status", Some(&message), Some(flags), Some(&self.icon));
     }
 }
 
