@@ -7,8 +7,8 @@ use winping::{Buffer, Pinger};
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg; // Optional. Only if the derive macro is used.
 
+use nwd::{NwgPartial, NwgUi};
 use nwg::NativeUi;
-use nwd::{NwgUi, NwgPartial};
 
 #[derive(Default, NwgUi)]
 pub struct BasicApp {
@@ -165,20 +165,59 @@ impl BasicApp {
     }
 }
 
-#[derive(Default, NwgPartial)]
-pub struct GraphUi {
-    #[nwg_layout] // (max_size: [1000, 150], min_size: [100, 120])]
-    layout: nwg::GridLayout,
-    
-    #[nwg_control(range: Some(0..100), pos: Some(10), flags:"VISIBLE|VERTICAL")]
-    #[nwg_layout_item(layout: layout, col: 0, row: 0)]
-    graph1: nwg::TrackBar,
-
-    #[nwg_control( range: 0..100, pos: 10, flags:"VISIBLE|VERTICAL")]
-    #[nwg_layout_item(layout: layout, col: 1, row: 0)]
-    graph2: nwg::ProgressBar,
+struct GraphData {
+    min: u16,
+    max: u16,
+    bars: Vec<(u16, (u16, u16))>,
 }
 
+impl Default for GraphData {
+    fn default() -> Self {
+        GraphData {
+            min: 0,
+            max: u16::MAX,
+            bars: Vec::new(),
+        }
+    }
+}
+
+#[derive(Default, NwgPartial)]
+pub struct GraphUi {
+
+    #[nwg_layout(spacing: 1)]
+    grid: nwg::GridLayout,
+
+    #[nwg_control]
+    #[nwg_layout_item(layout: grid, col:0, row: 0)]
+    #[nwg_events( OnResize: [GraphUi::on_resize])]
+    frame: nwg::Frame,
+
+    #[nwg_layout] // (max_size: [1000, 150], min_size: [100, 120])]
+    layout: nwg::GridLayout,
+
+
+    #[nwg_control(position: (10,10), size: (100,100), background_color: Some([0, 255, 255]))]
+    frame1: nwg::ImageFrame,
+
+    #[nwg_control(position: (110,10), size: (100,100), background_color: Some([255, 0, 255]))]
+    frame2: nwg::ImageFrame,
+
+    _bars: RefCell<Vec<nwg::Frame>>,
+}
+
+impl GraphUi {
+    fn _set_values(&self, _bars: Vec<(u16, (u16, u16))>) {}
+
+    fn on_resize(&self) {
+        let (w, h) = self.frame.size();
+        let (l, t) = self.frame.position();
+        self.frame1.set_size(w / 2, h);
+        self.frame1.set_position(l,t);
+
+        self.frame2.set_size(w/2, h/3);
+        self.frame2.set_position(((w / 2) as i32) + l, t + (h/3) as i32);
+    }
+}
 
 pub struct MyData {
     count: u32,
