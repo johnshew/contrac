@@ -42,44 +42,55 @@ pub struct BasicApp {
 
     #[nwg_control(text: "Heisenberg", focus: true)]
     #[nwg_layout_item(layout: grid, row: 0, col: 0)]
-    name_edit: nwg::TextInput,
-
-    #[nwg_control(text: "Say my name")]
-    #[nwg_layout_item(layout: grid, col: 0, row: 1, row_span: 2)]
-    #[nwg_events( OnButtonClick: [BasicApp::say_hello] )]
-    hello_button: nwg::Button,
+    message_edit: nwg::TextInput,
 
     #[nwg_control( flags:"VISIBLE|HORIZONTAL|RANGE")]
-    #[nwg_layout_item(layout: grid, col: 0, row: 3)]
+    #[nwg_layout_item(layout: grid, col: 0, row: 1)]
     slider: nwg::TrackBar,
+
+    #[nwg_control(text: "Clear")]
+    #[nwg_layout_item(layout: grid, col: 0, row: 2)]
+    #[nwg_events( OnButtonClick: [BasicApp::clear] )]
+    clear_button: nwg::Button,
 }
 
 impl BasicApp {
     fn on_init(&self) {
         self.slider.set_range_min(0);
         self.slider.set_range_max(100);
-        self.slider.set_selection_range_pos(25..75);
-        self.slider.set_pos(50);
     }
 
-    fn say_hello(&self) {
+    fn _say_hello(&self) {
         nwg::modal_info_message(
             &self.window,
             "Hello",
-            &format!("Hello {}", self.name_edit.text()),
+            &format!("Hello {}", self.message_edit.text()),
         );
     }
 
+    fn clear(&self) {
+        let mut data = self.data.borrow_mut();
+        data.count = 0;
+        data.total = 0;
+        data.min = u32::MAX;
+        data.max = 0;
+        data.probes.clear();
+    }
+
     fn say_goodbye(&self) {
-        nwg::modal_info_message(
-            &self.window,
-            "Goodbye",
-            &format!("Goodbye {}", self.name_edit.text()),
-        );
+        if false {
+            nwg::modal_info_message(
+                &self.window,
+                "Goodbye",
+                &format!("Goodbye {}", self.message_edit.text()),
+            );
+        }
         nwg::stop_thread_dispatch();
     }
 
     fn timer_tick(&self) {
+        let mut data = self.data.borrow_mut();
+
         let dst = std::env::args()
             .nth(1)
             .unwrap_or(String::from("1.1.1.1"))
@@ -92,9 +103,7 @@ impl BasicApp {
         match pinger.send(dst, &mut buffer) {
             Ok(rtt) => {
                 let result = format!("Response time: {}", rtt);
-                self.name_edit.set_text(&result);
-                
-                let mut data = self.data.borrow_mut();
+                self.message_edit.set_text(&result);
                 if rtt < data.min {
                     data.min = rtt;
                 }
@@ -111,7 +120,8 @@ impl BasicApp {
                     rtt,
                 ));
                 self.slider.set_pos(rtt as usize);
-                self.slider.set_selection_range_pos(data.min as usize..data.max as usize);
+                self.slider
+                    .set_selection_range_pos(data.min as usize..data.max as usize);
             }
             Err(err) => println!("{}.", err),
         }
