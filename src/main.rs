@@ -40,13 +40,13 @@ pub struct BasicApp {
     #[nwg_layout(parent: window, spacing: 1)]
     grid: nwg::GridLayout,
 
-    #[nwg_control(text: "Heisenberg", focus: true)]
-    #[nwg_layout_item(layout: grid, row: 0, col: 0)]
-    message_edit: nwg::TextInput,
-
     #[nwg_control( flags:"VISIBLE|HORIZONTAL|RANGE")]
-    #[nwg_layout_item(layout: grid, col: 0, row: 1)]
+    #[nwg_layout_item(layout: grid, col: 0, row: 0)]
     slider: nwg::TrackBar,
+
+    #[nwg_control(text: "", h_align: nwg::HTextAlign::Center)]
+    #[nwg_layout_item(layout: grid, col: 0, row: 1)]
+    message: nwg::Label,
 
     #[nwg_control(text: "Clear")]
     #[nwg_layout_item(layout: grid, col: 0, row: 2)]
@@ -64,7 +64,7 @@ impl BasicApp {
         nwg::modal_info_message(
             &self.window,
             "Hello",
-            &format!("Hello {}", self.message_edit.text()),
+            &format!("Hello {}", self.message.text()),
         );
     }
 
@@ -82,7 +82,7 @@ impl BasicApp {
             nwg::modal_info_message(
                 &self.window,
                 "Goodbye",
-                &format!("Goodbye {}", self.message_edit.text()),
+                &format!("Goodbye {}", self.message.text()),
             );
         }
         nwg::stop_thread_dispatch();
@@ -102,8 +102,6 @@ impl BasicApp {
 
         match pinger.send(dst, &mut buffer) {
             Ok(rtt) => {
-                let result = format!("Response time: {}", rtt);
-                self.message_edit.set_text(&result);
                 if rtt < data.min {
                     data.min = rtt;
                 }
@@ -119,6 +117,10 @@ impl BasicApp {
                         .as_millis(),
                     rtt,
                 ));
+
+                let message = format!("{}ms (avg {:.1} from {} to {})", rtt, data.total as f32/data.count as f32, data.min, data.max);
+                self.message.set_text(&message);
+
                 self.slider.set_pos(rtt as usize);
                 self.slider
                     .set_selection_range_pos(data.min as usize..data.max as usize);
