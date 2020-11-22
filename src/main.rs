@@ -7,8 +7,8 @@ use winping::{Buffer, Pinger};
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg; // Optional. Only if the derive macro is used.
 
-use nwd::NwgUi;
 use nwg::NativeUi;
+use nwd::{NwgUi, NwgPartial};
 
 #[derive(Default, NwgUi)]
 pub struct BasicApp {
@@ -41,23 +41,23 @@ pub struct BasicApp {
     grid: nwg::GridLayout,
 
     #[nwg_control( flags:"VISIBLE|HORIZONTAL|RANGE")]
-    #[nwg_layout_item(layout: grid, col: 0, col_span: 2, row: 0)]
+    #[nwg_layout_item(layout: grid, col: 0,  row: 0)]
     slider: nwg::TrackBar,
 
     #[nwg_control(text: "", h_align: nwg::HTextAlign::Center)]
-    #[nwg_layout_item(layout: grid, col: 0, col_span: 2, row: 1)]
+    #[nwg_layout_item(layout: grid, col: 0,  row: 1)]
     message: nwg::Label,
 
-    #[nwg_control(range: 0..100, pos: 10, flags:"VISIBLE|VERTICAL")]
+    #[nwg_control] // ( flags:"BORDER")]
     #[nwg_layout_item(layout: grid, col: 0, row: 2, row_span: 2)]
-    graph1: nwg::ProgressBar,
+    graph_frame: nwg::Frame,
 
-    #[nwg_control(state: nwg::ProgressBarState::Normal, range: 0..100, pos: 30, flags:"VISIBLE|VERTICAL")]
-    #[nwg_layout_item(layout: grid, col: 1, row: 2, row_span: 2)]
-    graph2: nwg::ProgressBar,
+    #[nwg_partial(parent: graph_frame)]
+    // #[nwg_events( (save_btn, OnButtonClick): [PartialDemo::save] )]
+    graph: GraphUi,
 
     #[nwg_control(text: "Clear")]
-    #[nwg_layout_item(layout: grid, col: 0, col_span: 2, row: 4)]
+    #[nwg_layout_item(layout: grid, col: 0,  row: 4)]
     #[nwg_events( OnButtonClick: [BasicApp::clear] )]
     clear_button: nwg::Button,
 }
@@ -84,9 +84,9 @@ impl BasicApp {
         data.max = 0;
         data.probes.clear();
 
-        self.graph1.set_state(nwg::ProgressBarState::Normal);
-        self.graph1.set_pos(50);
-        self.graph1.set_state(nwg::ProgressBarState::Paused);
+        // self.graph1.set_state(nwg::ProgressBarState::Normal);
+        // self.graph1.set_pos(50);
+        // self.graph1.set_state(nwg::ProgressBarState::Paused);
     }
 
     fn say_goodbye(&self) {
@@ -130,12 +130,18 @@ impl BasicApp {
                     rtt,
                 ));
 
-                let message = format!("{}ms (avg {:.1} from {} to {})", rtt, data.average(), data.min, data.max);
+                let message = format!(
+                    "{} ({}:{}) {:.1}ms avg",
+                    rtt,
+                    data.min,
+                    data.max,
+                    data.average()
+                );
                 self.message.set_text(&message);
 
                 // self.graph2.set_state(nwg::ProgressBarState::Normal);
-                self.graph2.set_pos(rtt);
-                self.graph2.set_state(nwg::ProgressBarState::Paused);
+                // self.graph2.set_pos(rtt);
+                // self.graph2.set_state(nwg::ProgressBarState::Paused);
 
                 self.slider.set_pos(rtt as usize);
                 self.slider
@@ -157,6 +163,20 @@ impl BasicApp {
         self.tray
             .show("Status", Some(&message), Some(flags), Some(&self.icon));
     }
+}
+
+#[derive(Default, NwgPartial)]
+pub struct GraphUi {
+    #[nwg_layout] // (max_size: [1000, 150], min_size: [100, 120])]
+    layout: nwg::GridLayout,
+    
+    #[nwg_control(range: Some(0..100), pos: Some(10), flags:"VISIBLE|VERTICAL")]
+    #[nwg_layout_item(layout: layout, col: 0, row: 0)]
+    graph1: nwg::TrackBar,
+
+    #[nwg_control( range: 0..100, pos: 10, flags:"VISIBLE|VERTICAL")]
+    #[nwg_layout_item(layout: layout, col: 1, row: 0)]
+    graph2: nwg::ProgressBar,
 }
 
 
@@ -181,12 +201,11 @@ impl Default for MyData {
 }
 
 impl MyData {
-    fn average(&self) -> f32 { 
+    fn average(&self) -> f32 {
         return self.total as f32 / self.count as f32;
     }
     // fn intervals(&self,  start: u128, end: u128) {}
 }
-
 
 fn main() {
     nwg::init().expect("Failed to init Native Windows GUI");
@@ -195,3 +214,11 @@ fn main() {
     let _app = BasicApp::build_ui(Default::default()).expect("Failed to build UI");
     nwg::dispatch_thread_events();
 }
+
+// #[nwg_control(range: 0..100, pos: 10, flags:"VISIBLE|VERTICAL")]
+// #[nwg_layout_item(layout: grid, col: 0, row: 3, row_span: 2)]
+// graph1: nwg::ProgressBar,
+
+// #[nwg_control(state: nwg::ProgressBarState::Normal, range: 0..100, pos: 30, flags:"VISIBLE|VERTICAL")]
+// #[nwg_layout_item(layout: grid, col: 1, row: 2, row_span: 2)]
+// graph2: nwg::ProgressBar,
