@@ -130,7 +130,7 @@ impl BasicApp {
                     rtt,
                 ));
 
-                let message = format!("{}ms (avg {:.1} from {} to {})", rtt, data.total as f32/data.count as f32, data.min, data.max);
+                let message = format!("{}ms (avg {:.1} from {} to {})", rtt, data.average(), data.min, data.max);
                 self.message.set_text(&message);
 
                 // self.graph2.set_state(nwg::ProgressBarState::Normal);
@@ -159,6 +159,7 @@ impl BasicApp {
     }
 }
 
+
 pub struct MyData {
     count: u32,
     total: u32,
@@ -178,6 +179,14 @@ impl Default for MyData {
         }
     }
 }
+
+impl MyData {
+    fn average(&self) -> f32 { 
+        return self.total as f32 / self.count as f32;
+    }
+    // fn intervals(&self,  start: u128, end: u128) {}
+}
+
 
 fn main() {
     nwg::init().expect("Failed to init Native Windows GUI");
