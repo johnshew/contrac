@@ -187,14 +187,10 @@ pub struct GraphUi {
     #[nwg_layout(spacing: 1)]
     grid: nwg::GridLayout,
 
-    #[nwg_control]
+    #[nwg_control(flags: "NONE")]
     #[nwg_layout_item(layout: grid, col:0, row: 0)]
     #[nwg_events( OnResize: [GraphUi::on_resize])]
     frame: nwg::Frame,
-
-    #[nwg_layout] // (max_size: [1000, 150], min_size: [100, 120])]
-    layout: nwg::GridLayout,
-
 
     #[nwg_control(position: (10,10), size: (100,100), background_color: Some([0, 255, 255]))]
     frame1: nwg::ImageFrame,
@@ -209,6 +205,8 @@ impl GraphUi {
     fn _set_values(&self, _bars: Vec<(u16, (u16, u16))>) {}
 
     fn on_resize(&self) {
+        self.frame.set_visible(true);
+        
         let (w, h) = self.frame.size();
         let (l, t) = self.frame.position();
         self.frame1.set_size(w / 2, h);
