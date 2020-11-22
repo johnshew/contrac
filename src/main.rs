@@ -41,15 +41,23 @@ pub struct BasicApp {
     grid: nwg::GridLayout,
 
     #[nwg_control( flags:"VISIBLE|HORIZONTAL|RANGE")]
-    #[nwg_layout_item(layout: grid, col: 0, row: 0)]
+    #[nwg_layout_item(layout: grid, col: 0, col_span: 2, row: 0)]
     slider: nwg::TrackBar,
 
     #[nwg_control(text: "", h_align: nwg::HTextAlign::Center)]
-    #[nwg_layout_item(layout: grid, col: 0, row: 1)]
+    #[nwg_layout_item(layout: grid, col: 0, col_span: 2, row: 1)]
     message: nwg::Label,
 
+    #[nwg_control(range: 0..100, pos: 10, flags:"VISIBLE|VERTICAL")]
+    #[nwg_layout_item(layout: grid, col: 0, row: 2, row_span: 2)]
+    graph1: nwg::ProgressBar,
+
+    #[nwg_control(state: nwg::ProgressBarState::Normal, range: 0..100, pos: 30, flags:"VISIBLE|VERTICAL")]
+    #[nwg_layout_item(layout: grid, col: 1, row: 2, row_span: 2)]
+    graph2: nwg::ProgressBar,
+
     #[nwg_control(text: "Clear")]
-    #[nwg_layout_item(layout: grid, col: 0, row: 2)]
+    #[nwg_layout_item(layout: grid, col: 0, col_span: 2, row: 4)]
     #[nwg_events( OnButtonClick: [BasicApp::clear] )]
     clear_button: nwg::Button,
 }
@@ -75,6 +83,10 @@ impl BasicApp {
         data.min = u32::MAX;
         data.max = 0;
         data.probes.clear();
+
+        self.graph1.set_state(nwg::ProgressBarState::Normal);
+        self.graph1.set_pos(50);
+        self.graph1.set_state(nwg::ProgressBarState::Paused);
     }
 
     fn say_goodbye(&self) {
@@ -120,6 +132,10 @@ impl BasicApp {
 
                 let message = format!("{}ms (avg {:.1} from {} to {})", rtt, data.total as f32/data.count as f32, data.min, data.max);
                 self.message.set_text(&message);
+
+                // self.graph2.set_state(nwg::ProgressBarState::Normal);
+                self.graph2.set_pos(rtt);
+                self.graph2.set_state(nwg::ProgressBarState::Paused);
 
                 self.slider.set_pos(rtt as usize);
                 self.slider
