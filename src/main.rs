@@ -15,7 +15,7 @@ pub struct AppData {
     total: u32,
     min: u32,
     max: u32,
-    probes: VecDeque<(u128, u32)>,
+    probes: VecDeque<(u128, u16)>,
 }
 
 impl Default for AppData {
@@ -95,6 +95,7 @@ impl BasicApp {
         self.slider.set_range_max(100);
         self.graph
             .set_values(0, 200, vec![(10, (8, 20)), (12, (50, 200))]);
+        self.graph.on_resize();
     }
 
     fn _say_hello(&self) {
@@ -126,8 +127,6 @@ impl BasicApp {
     }
 
     fn timer_tick(&self) {
-        let mut data = self.data.borrow_mut();
-
         let dst = std::env::args()
             .nth(1)
             .unwrap_or(String::from("1.1.1.1"))
@@ -139,38 +138,70 @@ impl BasicApp {
 
         match pinger.send(dst, &mut buffer) {
             Ok(rtt) => {
-                if rtt < data.min {
-                    data.min = rtt;
+                let rrt = 0;
+                {
+                    let mut data = self.data.borrow_mut();
+
+                    if rtt < data.min {
+                        data.min = rtt;
+                    }
+                    if rtt > data.max {
+                        data.max = rtt;
+                    }
+                    data.count += 1;
+                    data.total += rtt;
+                    data.probes.push_back((
+                        SystemTime::now()
+                            .duration_since(UNIX_EPOCH)
+                            .expect("Clock issue")
+                            .as_millis(),
+                        rtt as u16,
+                    ));
+
+                    let message = format!(
+                        "{} ({}:{}) {:.1}ms avg",
+                        rtt,
+                        data.min,
+                        data.max,
+                        data.average()
+                    );
+                    self.message.set_text(&message);
+                    self.slider.set_pos(rtt as usize);
+                    self.slider
+                        .set_selection_range_pos(data.min as usize..data.max as usize);
                 }
-                if rtt > data.max {
-                    data.max = rtt;
+
+                {
+                    let data = self.data.borrow();
+                    let mut graph: Vec<(u16, (u16, u16))> = Vec::new();
+                    let mut count = 0;
+                    let mut min = u16::MAX;
+                    let mut max = 0;
+                    let mut total = 0;
+                    let mut avg = 0;
+                    for item in &data.probes {
+                        let (_time, ping) = item;
+                        count += 1;
+                        if *ping < min {
+                            min = *ping;
+                        };
+                        if *ping > max {
+                            max = *ping;
+                        };
+                        total += ping;
+                        avg = (total / count) as u16;
+                        if count >= 5 {
+                            let item = (avg, (min, max));
+                            graph.push(item);
+                            count = 0;
+                        }
+                    }
+                    if count > 0 {
+                        let item = (avg, (min, max));
+                        graph.push(item);
+                    }
+                    self.graph.set_values(0, 300, graph);
                 }
-                data.count += 1;
-                data.total += rtt;
-                data.probes.push_back((
-                    SystemTime::now()
-                        .duration_since(UNIX_EPOCH)
-                        .expect("Clock issue")
-                        .as_millis(),
-                    rtt,
-                ));
-
-                let message = format!(
-                    "{} ({}:{}) {:.1}ms avg",
-                    rtt,
-                    data.min,
-                    data.max,
-                    data.average()
-                );
-                self.message.set_text(&message);
-
-                // self.graph2.set_state(nwg::ProgressBarState::Normal);
-                // self.graph2.set_pos(rtt);
-                // self.graph2.set_state(nwg::ProgressBarState::Paused);
-
-                self.slider.set_pos(rtt as usize);
-                self.slider
-                    .set_selection_range_pos(data.min as usize..data.max as usize);
             }
             Err(err) => println!("{}.", err),
         }
