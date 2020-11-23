@@ -95,7 +95,6 @@ impl BasicApp {
         self.slider.set_range_max(100);
         self.graph
             .set_values(0, 200, vec![(10, (8, 20)), (12, (50, 200))]);
-        self.graph.set_bars_len(2);
     }
 
     fn _say_hello(&self) {
@@ -233,44 +232,24 @@ impl GraphUi {
         data.min = min;
         data.max = max;
         data.bars = bars.to_vec();
-    }
 
-    fn add_bar(&self, column: u32) {
-        let mut new_bar = Default::default();
-        nwg::ImageFrame::builder()
-            .parent(&self.frame)
-            .background_color(Some([0, 255, 255]))
-            .build(&mut new_bar)
-            .expect("Failed to build button");
-
-        // self.grid.add_child(0, column, &new_bar);
-
-        let mut graph_bars = self.bars.borrow_mut();
-        graph_bars.push(new_bar);
-    }
-
-    fn set_bars_len(&self, len: usize) {
-        let mut graph_bars_len = 0;
-        { 
+        let len = data.bars.len();
+        let graph_bars_len;
+        {
             graph_bars_len = self.bars.borrow().len();
         }
         if len > graph_bars_len {
-            for i in graph_bars_len..len {
+            let mut graph_bars = self.bars.borrow_mut();
+            for _i in graph_bars_len..len {
                 let mut new_bar = Default::default();
                 nwg::ImageFrame::builder()
                     .parent(&self.frame)
                     .background_color(Some([0, 255, 255]))
                     .build(&mut new_bar)
                     .expect("Failed to build button");
-        
-                // self.grid.add_child(0, column, &new_bar);
-        
-                let mut graph_bars = self.bars.borrow_mut();
                 graph_bars.push(new_bar);
             }
         }
-
-        // self.on_resize();
     }
 
     fn on_resize(&self) {
@@ -279,9 +258,9 @@ impl GraphUi {
         let (w, h) = self.frame.size();
         let (l, t) = self.frame.position();
 
-        let mut data_len = 0;
+        let data_len;
         {
-            data_len = self.data.borrow().bars.len();            
+            data_len = self.data.borrow().bars.len();
         }
         for i in 0..data_len {
             let data = self.data.borrow();
@@ -289,16 +268,14 @@ impl GraphUi {
             let (_pos, (low, high)) = bar;
             let bar_h_ratio = (high - low) as f32 / (data.max - data.min) as f32;
             let bar_h = (h as f32 * bar_h_ratio) as u32;
-            let gap_ratio = (data.max - high) as f32 / (data.max - data.min) as f32;
-            let gap_h = (h as f32 * gap_ratio) as i32;
+            let top_gap_ratio = (data.max - high) as f32 / (data.max - data.min) as f32;
+            let top_gap = (h as f32 * top_gap_ratio) as i32;
             {
-                let  bars = self.bars.borrow();
+                let bars = self.bars.borrow();
                 bars.get(i).unwrap().set_size(w / data_len as u32, bar_h);
-                bars.get(i).unwrap().set_position(
-                    (w / data_len as u32 * i as u32) as i32 + l,
-                    gap_h + t,
-                );
-                
+                bars.get(i)
+                    .unwrap()
+                    .set_position((w / data_len as u32 * i as u32) as i32 + l, top_gap + t);
             }
         }
     }
@@ -311,11 +288,3 @@ fn main() {
     let _app = BasicApp::build_ui(Default::default()).expect("Failed to build UI");
     nwg::dispatch_thread_events();
 }
-
-// #[nwg_control(range: 0..100, pos: 10, flags:"VISIBLE|VERTICAL")]
-// #[nwg_layout_item(layout: grid, col: 0, row: 3, row_span: 2)]
-// graph1: nwg::ProgressBar,
-
-// #[nwg_control(state: nwg::ProgressBarState::Normal, range: 0..100, pos: 30, flags:"VISIBLE|VERTICAL")]
-// #[nwg_layout_item(layout: grid, col: 1, row: 2, row_span: 2)]
-// graph2: nwg::ProgressBar,
