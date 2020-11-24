@@ -261,10 +261,14 @@ impl GraphUi {
             let mut data = self.data.borrow_mut();
             data.min = min;
             data.max = max;
-            data.bars = bars.to_vec();
-            // let mut count = bars.len();
-            // if count > 100 { count = 100; }
-            // data.bars = bars[bars.len()-count..bars.len()].to_vec();
+            let max_count = 20;
+            let _len = bars.len();
+            if bars.len() > max_count {
+                data.bars = bars[bars.len() - max_count..bars.len()].to_vec();
+                let _len = data.bars.len();
+            } else {
+                data.bars = bars.to_vec();
+            }
             len = data.bars.len();
         }
         let graph_bars_len;
