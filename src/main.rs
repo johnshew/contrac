@@ -249,6 +249,8 @@ pub struct GraphUi {
     #[nwg_events( OnResize: [GraphUi::on_resize])]
     frame: nwg::Frame,
 
+    // #[nwg_control]
+    // tooltip: nwg::Tooltip,
     bars: RefCell<Vec<nwg::ImageFrame>>,
 }
 
@@ -268,20 +270,20 @@ impl GraphUi {
             graph_bars_len = self.bars.borrow().len();
         }
         if len > graph_bars_len {
-            {
-                let mut graph_bars = self.bars.borrow_mut();
-                for _i in graph_bars_len..len {
-                    let mut new_bar = Default::default();
-                    nwg::ImageFrame::builder()
-                        .parent(&self.frame)
-                        .background_color(Some([0, 255, 255]))
-                        .build(&mut new_bar)
-                        .expect("Failed to build button");
-                    graph_bars.push(new_bar);
-                }
+            let mut graph_bars = self.bars.borrow_mut();
+            for _i in graph_bars_len..len {
+                let mut new_bar = Default::default();
+                nwg::ImageFrame::builder()
+                    .parent(&self.frame)
+                    .background_color(Some([0, 255, 255]))
+                    .build(&mut new_bar)
+                    .expect("Failed to build button");
+                graph_bars.push(new_bar);
+                // self.tooltip.register(&new_bar, "");
             }
-            self.on_resize();
+            assert_eq!(graph_bars.len(), bars.len());
         }
+        self.on_resize();
     }
 
     fn on_resize(&self) {
@@ -297,7 +299,7 @@ impl GraphUi {
         for i in 0..data_len {
             let data = self.data.borrow();
             let bar = data.bars[i];
-            let (_pos, (mut low, mut high)) = bar;
+            let (pos, (mut low, mut high)) = bar;
 
             // Clip
             if low < data.min {
@@ -319,10 +321,12 @@ impl GraphUi {
             let top_gap = (h as f32 * top_gap_ratio) as i32;
             {
                 let bars = self.bars.borrow();
-                bars.get(i).unwrap().set_size(w / data_len as u32, bar_h);
-                bars.get(i)
-                    .unwrap()
-                    .set_position((w / data_len as u32 * i as u32) as i32 + l, top_gap + t);
+                let bar = bars.get(i).unwrap();
+                bar.set_size(w / data_len as u32, bar_h);
+                bar.set_position((w / data_len as u32 * i as u32) as i32 + l, top_gap + t);
+                let _tip = format!("{} ({},{})", pos, low, high);
+                // let handle = nwg::ControlHandle::from(bar);
+                // self.tooltip.set_text(&handle, &tip);
             }
         }
     }
