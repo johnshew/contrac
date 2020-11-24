@@ -322,7 +322,10 @@ impl GraphUi {
             }
 
             let bar_h_ratio = (high - low) as f32 / (data.max - data.min) as f32;
-            let bar_h = (h as f32 * bar_h_ratio) as u32;
+            let mut bar_h = (h as f32 * bar_h_ratio) as u32;
+            if bar_h < 2 {
+                bar_h = 2;
+            }
             let top_gap_ratio = (data.max - high) as f32 / (data.max - data.min) as f32;
             let top_gap = (h as f32 * top_gap_ratio) as i32;
             {
