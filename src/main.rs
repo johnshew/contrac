@@ -176,13 +176,13 @@ impl BasicApp {
                     let mut total = 0;
                     let mut avg = 0;
                     for item in &data.probes {
-                        let (_time, ping) = item;
+                        let (_time, ping) = *item;
                         count += 1;
-                        if *ping < min {
-                            min = *ping;
+                        if ping < min {
+                            min = ping;
                         };
-                        if *ping > max {
-                            max = *ping;
+                        if ping > max {
+                            max = ping;
                         };
                         total += ping;
                         avg = (total / count) as u16;
@@ -262,7 +262,9 @@ impl GraphUi {
             data.min = min;
             data.max = max;
             data.bars = bars.to_vec();
-
+            // let mut count = bars.len();
+            // if count > 100 { count = 100; }
+            // data.bars = bars[bars.len()-count..bars.len()].to_vec();
             len = data.bars.len();
         }
         let graph_bars_len;
