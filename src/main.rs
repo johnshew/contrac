@@ -93,9 +93,6 @@ impl BasicApp {
     fn on_init(&self) {
         self.slider.set_range_min(0);
         self.slider.set_range_max(100);
-        self.graph
-            .set_values(0, 200, vec![(10, (8, 20)), (12, (50, 200))]);
-        self.graph.on_resize();
     }
 
     fn _say_hello(&self) {
@@ -138,7 +135,6 @@ impl BasicApp {
 
         match pinger.send(dst, &mut buffer) {
             Ok(rtt) => {
-                let rrt = 0;
                 {
                     let mut data = self.data.borrow_mut();
 
@@ -194,13 +190,17 @@ impl BasicApp {
                             let item = (avg, (min, max));
                             graph.push(item);
                             count = 0;
+                            min = u16::MAX;
+                            max = 0;
+                            total = 0;
+                            avg = 0;
                         }
                     }
                     if count > 0 {
                         let item = (avg, (min, max));
                         graph.push(item);
                     }
-                    self.graph.set_values(0, 300, graph);
+                    self.graph.set_values(0, 20, graph);
                 }
             }
             Err(err) => println!("{}.", err),
@@ -249,37 +249,38 @@ pub struct GraphUi {
     #[nwg_events( OnResize: [GraphUi::on_resize])]
     frame: nwg::Frame,
 
-    // #[nwg_control(position: (10,10), size: (100,100), background_color: Some([0, 255, 255]))]
-    // frame1: nwg::ImageFrame,
-
-    // #[nwg_control(position: (110,10), size: (100,100), background_color: Some([255, 0, 255]))]
-    // frame2: nwg::ImageFrame,
     bars: RefCell<Vec<nwg::ImageFrame>>,
 }
 
 impl GraphUi {
     fn set_values(&self, min: u16, max: u16, bars: Vec<(u16, (u16, u16))>) {
-        let mut data = self.data.borrow_mut();
-        data.min = min;
-        data.max = max;
-        data.bars = bars.to_vec();
+        let len;
+        {
+            let mut data = self.data.borrow_mut();
+            data.min = min;
+            data.max = max;
+            data.bars = bars.to_vec();
 
-        let len = data.bars.len();
+            len = data.bars.len();
+        }
         let graph_bars_len;
         {
             graph_bars_len = self.bars.borrow().len();
         }
         if len > graph_bars_len {
-            let mut graph_bars = self.bars.borrow_mut();
-            for _i in graph_bars_len..len {
-                let mut new_bar = Default::default();
-                nwg::ImageFrame::builder()
-                    .parent(&self.frame)
-                    .background_color(Some([0, 255, 255]))
-                    .build(&mut new_bar)
-                    .expect("Failed to build button");
-                graph_bars.push(new_bar);
+            {
+                let mut graph_bars = self.bars.borrow_mut();
+                for _i in graph_bars_len..len {
+                    let mut new_bar = Default::default();
+                    nwg::ImageFrame::builder()
+                        .parent(&self.frame)
+                        .background_color(Some([0, 255, 255]))
+                        .build(&mut new_bar)
+                        .expect("Failed to build button");
+                    graph_bars.push(new_bar);
+                }
             }
+            self.on_resize();
         }
     }
 
@@ -296,7 +297,22 @@ impl GraphUi {
         for i in 0..data_len {
             let data = self.data.borrow();
             let bar = data.bars[i];
-            let (_pos, (low, high)) = bar;
+            let (_pos, (mut low, mut high)) = bar;
+
+            // Clip
+            if low < data.min {
+                low = data.min;
+            }
+            if low > data.max {
+                low = data.max;
+            }
+            if high < data.min {
+                high = data.min;
+            }
+            if high > data.max {
+                high = data.max;
+            }
+
             let bar_h_ratio = (high - low) as f32 / (data.max - data.min) as f32;
             let bar_h = (h as f32 * bar_h_ratio) as u32;
             let top_gap_ratio = (data.max - high) as f32 / (data.max - data.min) as f32;
