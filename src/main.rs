@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::net::IpAddr;
 use std::time::{SystemTime, UNIX_EPOCH };
-use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Duration};
+use chrono::{DateTime, NaiveDateTime, Utc, Local};
 use winping::{Buffer, Pinger};
 
 extern crate native_windows_derive as nwd;
@@ -18,7 +18,7 @@ pub struct AppData {
     total: u32,
     min: u32,
     max: u32,
-    probes: VecDeque<(u64, u16)>,
+    probes: VecDeque<(u128, u16)>,
 }
 
 impl Default for AppData {
@@ -159,7 +159,7 @@ impl BasicApp {
                         SystemTime::now()
                             .duration_since(UNIX_EPOCH)
                             .expect("Clock issue")
-                            .as_secs(),
+                            .as_nanos(),
                         rtt as u16,
                     ));
 
@@ -225,8 +225,9 @@ impl BasicApp {
         let mut f = File::create("report.txt")?;
         let data = self.data.borrow();
         for (time,rtt) in &data.probes {
-            let date_time = NaiveDateTime::from_timestamp(*time as i64, 0 );
-            let message = format!("{:0}, {}\r\n", date_time, rtt);
+            let date_time = NaiveDateTime::from_timestamp((*time / 1_000_000_000) as i64, (*time % 1_000_000_000) as u32);
+            let date_time_local = DateTime::<Local>::from(DateTime::<Utc>::from_utc(date_time, Utc));
+            let message = format!("{:0}, {}\r\n", date_time_local, rtt); 
             let message = message.as_bytes();
             f.write_all(message).unwrap();
         }
