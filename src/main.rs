@@ -1,7 +1,10 @@
 use std::cell::RefCell;
 use std::collections::VecDeque;
+use std::fs::File;
+use std::io::prelude::*;
 use std::net::IpAddr;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH };
+use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Duration};
 use winping::{Buffer, Pinger};
 
 extern crate native_windows_derive as nwd;
@@ -15,7 +18,7 @@ pub struct AppData {
     total: u32,
     min: u32,
     max: u32,
-    probes: VecDeque<(u128, u16)>,
+    probes: VecDeque<(u64, u16)>,
 }
 
 impl Default for AppData {
@@ -52,15 +55,15 @@ pub struct BasicApp {
     #[nwg_resource(source_file: Some("./resources/cog.ico"))]
     icon: nwg::Icon,
 
-    #[nwg_control(icon: Some(&data.icon), tip: Some("Hello"))]
+    #[nwg_control(icon: Some(&data.icon), tip: Some("Connection Tracker"))]
     #[nwg_events(MousePressLeftUp: [BasicApp::show_menu], OnContextMenu: [BasicApp::show_menu])]
     tray: nwg::TrayNotification,
 
     #[nwg_control(parent: window, popup: true)]
     tray_menu: nwg::Menu,
 
-    #[nwg_control(parent: tray_menu, text: "Hello")]
-    #[nwg_events(OnMenuItemSelected: [BasicApp::hello_menu_item])]
+    #[nwg_control(parent: tray_menu, text: "Save Report")]
+    #[nwg_events(OnMenuItemSelected: [BasicApp::menu_item_save_report])]
     tray_item1: nwg::MenuItem,
 
     // Main UX
@@ -87,12 +90,18 @@ pub struct BasicApp {
     #[nwg_layout_item(layout: grid, col: 0,  row: 4)]
     #[nwg_events( OnButtonClick: [BasicApp::clear] )]
     clear_button: nwg::Button,
+    // save_file_dialog: nwg::FileDialog,
 }
 
 impl BasicApp {
     fn on_init(&self) {
         self.slider.set_range_min(0);
         self.slider.set_range_max(100);
+        // nwg::FileDialog::builder()
+        // .action(nwg::FileDialogAction::Save)
+        // .title("Save a file")
+        // .filters("Text(*.txt)|Any(*.*)")
+        // .build(&mut &self.save_file_dialog);
     }
 
     fn _say_hello(&self) {
@@ -150,7 +159,7 @@ impl BasicApp {
                         SystemTime::now()
                             .duration_since(UNIX_EPOCH)
                             .expect("Clock issue")
-                            .as_millis(),
+                            .as_secs(),
                         rtt as u16,
                     ));
 
@@ -212,12 +221,31 @@ impl BasicApp {
         self.tray_menu.popup(x, y);
     }
 
-    fn hello_menu_item(&self) {
-        let flags = nwg::TrayNotificationFlags::USER_ICON | nwg::TrayNotificationFlags::LARGE_ICON;
+    fn write_log(&self) -> std::io::Result<()> {
+        let mut f = File::create("report.txt")?;
         let data = self.data.borrow();
-        let message = format!("{}ms ({},{})", data.total / data.count, data.min, data.max);
+        for (time,rtt) in &data.probes {
+            let date_time = NaiveDateTime::from_timestamp(*time as i64, 0 );
+            let message = format!("{:0}, {}\r\n", date_time, rtt);
+            let message = message.as_bytes();
+            f.write_all(message).unwrap();
+        }
+        f.sync_all()?;
+        Ok(())
+    }
+
+    fn menu_item_save_report(&self){
+        self.write_log().unwrap();
+
+        let data = self.data.borrow();
+        let message = format!("Report save. {:1} ms ({},{})", data.total as f32 / data.count as f32, data.min, data.max);
+        self.notification(&message);
+    }
+
+    fn notification(&self, message: &str) {
+        let flags = nwg::TrayNotificationFlags::USER_ICON | nwg::TrayNotificationFlags::LARGE_ICON;
         self.tray
-            .show("Status", Some(&message), Some(flags), Some(&self.icon));
+            .show("Status", Some(message), Some(flags), Some(&self.icon));
     }
 }
 
@@ -341,10 +369,15 @@ impl GraphUi {
     }
 }
 
-fn main() {
+fn main() -> std::io::Result<()> {
+    let mut f = File::create("report.txt")?;
+    f.write_all(b"Hello, world!")?;
+    f.sync_all()?;
+
     nwg::init().expect("Failed to init Native Windows GUI");
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
 
     let _app = BasicApp::build_ui(Default::default()).expect("Failed to build UI");
     nwg::dispatch_thread_events();
+    Ok(())
 }
