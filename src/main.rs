@@ -1,10 +1,10 @@
+use chrono::{Duration, DurationRound, Local};
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::fs::File;
 use std::io::prelude::*;
 use std::net::IpAddr;
-use std::time::{SystemTime, UNIX_EPOCH };
-use chrono::{DateTime, NaiveDateTime, Utc, Local};
+use std::time::{SystemTime, UNIX_EPOCH};
 use winping::{Buffer, Pinger};
 
 extern crate native_windows_derive as nwd;
@@ -13,12 +13,15 @@ extern crate native_windows_gui as nwg; // Optional. Only if the derive macro is
 use nwd::{NwgPartial, NwgUi};
 use nwg::NativeUi;
 
+mod stats;
+mod utils;
+
 pub struct AppData {
     count: u32,
     total: u32,
-    min: u32,
-    max: u32,
-    probes: VecDeque<(u128, u16)>,
+    min: u16,
+    max: u16,
+    probes: VecDeque<(u128, Option<u16>)>,
 }
 
 impl Default for AppData {
@@ -26,7 +29,7 @@ impl Default for AppData {
         AppData {
             count: 0,
             total: 0,
-            min: u32::MAX,
+            min: u16::MAX,
             max: 0,
             probes: VecDeque::new(),
         }
@@ -37,7 +40,21 @@ impl AppData {
     fn average(&self) -> f32 {
         return self.total as f32 / self.count as f32;
     }
-    // fn intervals(&self,  start: u128, end: u128) {}
+
+    fn add_observation(&mut self, timestamp_in_nano: u128, response_time_in_milli: Option<u16>) {
+        if let Some(ping) = response_time_in_milli {
+            self.count += 1;
+            if ping < self.min {
+                self.min = ping;
+            };
+            if ping > self.max {
+                self.max = ping;
+            };
+            self.total += ping as u32;
+        }
+        self.probes
+            .push_back((timestamp_in_nano, response_time_in_milli));
+    }
 }
 
 #[derive(Default, NwgUi)]
@@ -97,6 +114,7 @@ impl BasicApp {
     fn on_init(&self) {
         self.slider.set_range_min(0);
         self.slider.set_range_max(100);
+        self.graph.init(30, 0, 20);
         // nwg::FileDialog::builder()
         // .action(nwg::FileDialogAction::Save)
         // .title("Save a file")
@@ -116,103 +134,62 @@ impl BasicApp {
         let mut data = self.data.borrow_mut();
         data.count = 0;
         data.total = 0;
-        data.min = u32::MAX;
+        data.min = u16::MAX;
         data.max = 0;
         data.probes.clear();
     }
 
     fn say_goodbye(&self) {
-        if false {
-            nwg::modal_info_message(
-                &self.window,
-                "Goodbye",
-                &format!("Goodbye {}", self.message.text()),
-            );
-        }
         nwg::stop_thread_dispatch();
     }
 
     fn timer_tick(&self) {
-        let dst = std::env::args()
-            .nth(1)
-            .unwrap_or(String::from("1.1.1.1"))
-            .parse::<IpAddr>()
-            .expect("Could not parse IP Address");
-
         let pinger = Pinger::new().unwrap();
         let mut buffer = Buffer::new();
+        let dst = String::from("1.1.1.1")
+            .parse::<IpAddr>()
+            .expect("Could not parse IP Address");
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Bad time value")
+            .as_nanos();
+        let ping_response;
 
         match pinger.send(dst, &mut buffer) {
             Ok(rtt) => {
-                {
-                    let mut data = self.data.borrow_mut();
-
-                    if rtt < data.min {
-                        data.min = rtt;
-                    }
-                    if rtt > data.max {
-                        data.max = rtt;
-                    }
-                    data.count += 1;
-                    data.total += rtt;
-                    data.probes.push_back((
-                        SystemTime::now()
-                            .duration_since(UNIX_EPOCH)
-                            .expect("Clock issue")
-                            .as_nanos(),
-                        rtt as u16,
-                    ));
-
-                    let message = format!(
-                        "{} ({}:{}) {:.1}ms avg",
-                        rtt,
-                        data.min,
-                        data.max,
-                        data.average()
-                    );
-                    self.message.set_text(&message);
-                    self.slider.set_pos(rtt as usize);
-                    self.slider
-                        .set_selection_range_pos(data.min as usize..data.max as usize);
-                }
-
-                {
-                    let data = self.data.borrow();
-                    let mut graph: Vec<(u16, (u16, u16))> = Vec::new();
-                    let mut count = 0;
-                    let mut min = u16::MAX;
-                    let mut max = 0;
-                    let mut total = 0;
-                    let mut avg = 0;
-                    for item in &data.probes {
-                        let (_time, ping) = *item;
-                        count += 1;
-                        if ping < min {
-                            min = ping;
-                        };
-                        if ping > max {
-                            max = ping;
-                        };
-                        total += ping;
-                        avg = (total / count) as u16;
-                        if count >= 5 {
-                            let item = (avg, (min, max));
-                            graph.push(item);
-                            count = 0;
-                            min = u16::MAX;
-                            max = 0;
-                            total = 0;
-                            avg = 0;
-                        }
-                    }
-                    if count > 0 {
-                        let item = (avg, (min, max));
-                        graph.push(item);
-                    }
-                    self.graph.set_values(0, 20, graph);
-                }
+                ping_response = Some(rtt as u16);
             }
-            Err(err) => println!("{}.", err),
+            Err(_err) => {
+                ping_response = None;
+            }
+        };
+
+        // Update data
+        {
+            let mut data = self.data.borrow_mut();
+            data.add_observation(timestamp, ping_response);
+        }
+
+        //update UX
+        {
+            let data = self.data.borrow();
+            if let Some(rtt) = ping_response {
+                let message = format!(
+                    "{} ({}:{}) {:.1}ms avg",
+                    rtt,
+                    data.min,
+                    data.max,
+                    data.average()
+                );
+                self.message.set_text(&message);
+                self.slider.set_pos(rtt as usize);
+                self.slider
+                    .set_selection_range_pos(data.min as usize..data.max as usize);
+            } else {
+                self.message.set_text("Timeout");
+                self.slider.set_pos(300);
+            }
+            self.graph.set_values(&data.probes);
         }
     }
 
@@ -224,10 +201,14 @@ impl BasicApp {
     fn write_log(&self) -> std::io::Result<()> {
         let mut f = File::create("report.txt")?;
         let data = self.data.borrow();
-        for (time,rtt) in &data.probes {
-            let date_time = NaiveDateTime::from_timestamp((*time / 1_000_000_000) as i64, (*time % 1_000_000_000) as u32);
-            let date_time_local = DateTime::<Local>::from(DateTime::<Utc>::from_utc(date_time, Utc));
-            let message = format!("{:0}, {}\r\n", date_time_local, rtt); 
+        for (time, rtt) in &data.probes {
+            let date_time = utils::timestamp_to_datetime(*time);
+            let result = if rtt.is_some() {
+                rtt.unwrap().to_string()
+            } else {
+                String::from("timeout")
+            };
+            let message = format!("{:0}, {}\r\n", date_time, result);
             let message = message.as_bytes();
             f.write_all(message).unwrap();
         }
@@ -235,11 +216,16 @@ impl BasicApp {
         Ok(())
     }
 
-    fn menu_item_save_report(&self){
+    fn menu_item_save_report(&self) {
         self.write_log().unwrap();
 
         let data = self.data.borrow();
-        let message = format!("Report save. {:1} ms ({},{})", data.total as f32 / data.count as f32, data.min, data.max);
+        let message = format!(
+            "Report save. {:1} ms ({},{})",
+            data.total as f32 / data.count as f32,
+            data.min,
+            data.max
+        );
         self.notification(&message);
     }
 
@@ -251,16 +237,18 @@ impl BasicApp {
 }
 
 struct GraphData {
+    bar_count: u16,
     min: u16,
     max: u16,
-    bars: Vec<(u16, (u16, u16))>,
+    bars: Vec<stats::Stats<u16>>,
 }
 
 impl Default for GraphData {
     fn default() -> Self {
         GraphData {
-            min: 0,
-            max: u16::MAX,
+            bar_count: 0,
+            min: u16::MAX,
+            max: 0,
             bars: Vec::new(),
         }
     }
@@ -284,29 +272,11 @@ pub struct GraphUi {
 }
 
 impl GraphUi {
-    fn set_values(&self, min: u16, max: u16, bars: Vec<(u16, (u16, u16))>) {
-        let len;
-        {
-            let mut data = self.data.borrow_mut();
-            data.min = min;
-            data.max = max;
-            let max_count = 20;
-            let _len = bars.len();
-            if bars.len() > max_count {
-                data.bars = bars[bars.len() - max_count..bars.len()].to_vec();
-                let _len = data.bars.len();
-            } else {
-                data.bars = bars.to_vec();
-            }
-            len = data.bars.len();
-        }
-        let graph_bars_len;
-        {
-            graph_bars_len = self.bars.borrow().len();
-        }
-        if len > graph_bars_len {
-            let mut graph_bars = self.bars.borrow_mut();
-            for _i in graph_bars_len..len {
+    fn init(&self, graph_bars_len: u16, min: u16, max: u16) {
+        let mut graph_bars = self.bars.borrow_mut();
+        let len = graph_bars.len() as u16;
+        if len < graph_bars_len {
+            for _i in len..graph_bars_len {
                 let mut new_bar = Default::default();
                 nwg::ImageFrame::builder()
                     .parent(&self.frame)
@@ -314,11 +284,77 @@ impl GraphUi {
                     .build(&mut new_bar)
                     .expect("Failed to build button");
                 graph_bars.push(new_bar);
-                // self.tooltip.register(&new_bar, "");
             }
-            assert_eq!(graph_bars.len(), bars.len());
         }
-        self.on_resize();
+        let mut data = self.data.borrow_mut();
+        data.bar_count = graph_bars_len;
+        data.min = min;
+        data.max = max;
+        if data.bar_count != data.bars.len() as u16 {
+            data.bars
+                .resize_with(graph_bars_len as usize, Default::default);
+            let len = data.bars.len();
+            println!("{}", len);
+        }
+    }
+
+    fn set_values(&self, probes: &VecDeque<(u128, Option<u16>)>) {
+        // Loop backward in time in 10 second intervals aligned to clock.
+        // so find now to the nearest forward 10 second aligned time in nanoseconds and then iterate backward in time.alloc
+        // if there is a timeout in that interval then that bar should be red.
+        // if there is no data in that interval it can be invisible
+
+        let now = Local::now();
+        println!("Current time is {}", now);
+        let interval = Duration::seconds(10);
+        let mut end_of_interval = (now + interval)
+            .duration_trunc(interval)
+            .expect("time trucation should always work");
+        let mut start_of_interval = end_of_interval - interval;
+
+        let mut probe_count_remaining = probes.len();
+        let mut probes = probes.iter().rev().peekable();
+
+        let bars = self.bars.borrow();
+        let mut bar_is_complete = false;
+
+        for i in (0..bars.len()).rev() {
+            println!(
+                "Bar {} matching {} to {}",
+                i, start_of_interval, end_of_interval
+            );
+            let mut stats = <stats::Stats<u16> as Default>::default();
+            while !bar_is_complete {
+                if let Some(thing) = probes.peek() {
+                    let (timestamp, _ping) = **thing;
+                    let datetime = utils::timestamp_to_datetime(timestamp);
+                    assert!(datetime < end_of_interval, "confirming time");
+                    println!(
+                        "Found {} with {} samples remaining",
+                        datetime, probe_count_remaining
+                    );
+                    if datetime < start_of_interval {
+                        bar_is_complete = true;
+                        println!("It is out of the interval");
+                    }
+                } else {
+                    bar_is_complete = true;
+                    println!("No more data");
+                }
+                if bar_is_complete {
+                    let mut data = self.data.borrow_mut();
+                    data.bars[i] = <stats::Stats<u16> as Default>::default(); // Error should have COPY trait
+                    bar_is_complete = false;
+                    continue;
+                }
+                let (_timestamp, ping) = *probes.next().expect("Should not error here since we peeked");
+                probe_count_remaining -= 1;
+                println!("Updating stats for bar {}", i);
+                stats.update(ping);
+            }
+            end_of_interval = start_of_interval;
+            start_of_interval = end_of_interval - interval;
+        }
     }
 
     fn on_resize(&self) {
@@ -333,8 +369,10 @@ impl GraphUi {
         }
         for i in 0..data_len {
             let data = self.data.borrow();
-            let bar = data.bars[i];
-            let (pos, (mut low, mut high)) = bar;
+            let bar = &data.bars[i];
+            let pos = bar.average();
+            let mut low = bar.min;
+            let mut high = bar.max;
 
             // Clip
             if low < data.min {
@@ -358,10 +396,13 @@ impl GraphUi {
             let top_gap_ratio = (data.max - high) as f32 / (data.max - data.min) as f32;
             let top_gap = (h as f32 * top_gap_ratio) as i32;
             {
-                let bars = self.bars.borrow();
-                let bar = bars.get(i).unwrap();
-                bar.set_size(w / data_len as u32, bar_h);
-                bar.set_position((w / data_len as u32 * i as u32) as i32 + l, top_gap + t);
+                let graph_bars = self.bars.borrow();
+                let graph_bar = graph_bars.get(i).unwrap();
+                graph_bar.set_size(w / data_len as u32, bar_h);
+                graph_bar.set_position((w / data_len as u32 * i as u32) as i32 + l, top_gap + t);
+                if bar.timeout {
+                    // graph_bar
+                }
                 let _tip = format!("{} ({},{})", pos, low, high);
                 // let handle = nwg::ControlHandle::from(bar);
                 // self.tooltip.set_text(&handle, &tip);
@@ -382,3 +423,33 @@ fn main() -> std::io::Result<()> {
     nwg::dispatch_thread_events();
     Ok(())
 }
+
+// while let (timestamp, ping) = data.next_back() {
+//     if let Some(ping) = ping {
+//         count+=1;
+//         total+=ping;
+//         if ping < min { min = ping};
+//         if ping > max { max = ping };
+
+//     } else {
+//         // bar to red
+//     }
+// } else {
+//     done = true;
+// }
+
+//     // {
+//     //     data.min = min;
+//     //     data.max = max;
+//     //     let max_count = 20;
+//     //     let _len = bars.len();
+//     //     if bars.len() > max_count {
+//     //         data.bars = bars[bars.len() - max_count..bars.len()].to_vec();
+//     //         let _len = data.bars.len();
+//     //     } else {
+//     //         data.bars = bars.to_vec();
+//     //     }
+//     //     len = data.bars.len();
+//     // }
+//     self.on_resize();
+// }
