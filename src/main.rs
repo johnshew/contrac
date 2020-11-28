@@ -1,4 +1,4 @@
-use chrono::{Duration, DurationRound, Local};
+use chrono::{DateTime, Duration, DurationRound, Local };
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::fs::File;
@@ -22,6 +22,7 @@ pub struct AppData {
     min: u16,
     max: u16,
     probes: VecDeque<(u128, Option<u16>)>,
+    last_full_update: DateTime<Local>,
 }
 
 impl Default for AppData {
@@ -32,6 +33,7 @@ impl Default for AppData {
             min: u16::MAX,
             max: 0,
             probes: VecDeque::new(),
+            last_full_update: Local::now(),
         }
     }
 }
@@ -172,7 +174,7 @@ impl BasicApp {
 
         //update UX
         {
-            let data = self.data.borrow();
+            let mut data = self.data.borrow_mut();
             if let Some(rtt) = ping_response {
                 let message = format!(
                     "{} ({}:{}) {:.1}ms avg",
@@ -190,6 +192,11 @@ impl BasicApp {
                 self.slider.set_pos(300);
             }
             self.graph.set_values(&data.probes);
+            let datetime = utils::timestamp_to_datetime(timestamp);
+            if datetime > (data.last_full_update + Duration::milliseconds(250)) {
+                self.graph.on_resize();
+                data.last_full_update = datetime;
+            }
         }
     }
 
@@ -305,7 +312,6 @@ impl GraphUi {
         // if there is no data in that interval it can be invisible
 
         let now = Local::now();
-        println!("Current time is {}", now);
         let interval = Duration::seconds(10);
         let mut end_of_interval = (now + interval)
             .duration_trunc(interval)
@@ -318,10 +324,6 @@ impl GraphUi {
         let mut bar_is_complete = false;
 
         for i in (0..bars.len()).rev() {
-            println!(
-                "Bar {} matching {} to {}",
-                i, start_of_interval, end_of_interval
-            );
             let mut stats = <stats::Stats<u16> as Default>::default();
             while !bar_is_complete {
                 if probe_count_remaining > 0 {
@@ -329,17 +331,11 @@ impl GraphUi {
                     let (timestamp, _ping) = probes[probe_count_remaining - 1]; //**thing;
                     let datetime = utils::timestamp_to_datetime(timestamp);
                     assert!(datetime < end_of_interval, "confirming time");
-                    println!(
-                        "Found {} with {} samples remaining",
-                        datetime, probe_count_remaining
-                    );
                     if datetime < start_of_interval {
                         bar_is_complete = true;
-                        println!("It is out of the interval");
                     }
                 } else {
                     bar_is_complete = true;
-                    println!("No more data");
                 }
                 if bar_is_complete {
                     let mut data = self.data.borrow_mut();
@@ -349,7 +345,6 @@ impl GraphUi {
                 }
                 let (_timestamp, ping) = probes[probe_count_remaining - 1]; 
                 probe_count_remaining -= 1;
-                println!("Updating stats for bar {}", i);
                 stats.update(ping);
             }
             end_of_interval = start_of_interval;
