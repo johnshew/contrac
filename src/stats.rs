@@ -1,3 +1,5 @@
+
+#[derive(Copy, Clone)]
 pub struct Stats<T> {
     pub total: T,
     pub min: T,
@@ -25,9 +27,8 @@ impl<T> Stats<T>
 where
     T: num::Integer + num::Bounded + std::ops::AddAssign + Copy, // + std::ops::Add<Output = T>
 {
-    pub fn average(&self) -> T {
-        let result: T = self.total / self.count;
-        result
+    pub fn average(&self) -> Option<T> {
+        if self.count == T::zero() { return None; } else {return Some(self.total / self.count)}
     }
 
     pub fn update(&mut self, value: Option<T>) {

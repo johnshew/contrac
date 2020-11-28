@@ -313,7 +313,6 @@ impl GraphUi {
         let mut start_of_interval = end_of_interval - interval;
 
         let mut probe_count_remaining = probes.len();
-        let mut probes = probes.iter().rev().peekable();
 
         let bars = self.bars.borrow();
         let mut bar_is_complete = false;
@@ -325,8 +324,9 @@ impl GraphUi {
             );
             let mut stats = <stats::Stats<u16> as Default>::default();
             while !bar_is_complete {
-                if let Some(thing) = probes.peek() {
-                    let (timestamp, _ping) = **thing;
+                if probe_count_remaining > 0 {
+                    // let Some(thing) = probes[probe_count_remaining] {
+                    let (timestamp, _ping) = probes[probe_count_remaining - 1]; //**thing;
                     let datetime = utils::timestamp_to_datetime(timestamp);
                     assert!(datetime < end_of_interval, "confirming time");
                     println!(
@@ -343,11 +343,11 @@ impl GraphUi {
                 }
                 if bar_is_complete {
                     let mut data = self.data.borrow_mut();
-                    data.bars[i] = <stats::Stats<u16> as Default>::default(); // Error should have COPY trait
+                    data.bars[i] = stats; 
                     bar_is_complete = false;
-                    continue;
+                    break;
                 }
-                let (_timestamp, ping) = *probes.next().expect("Should not error here since we peeked");
+                let (_timestamp, ping) = probes[probe_count_remaining - 1]; 
                 probe_count_remaining -= 1;
                 println!("Updating stats for bar {}", i);
                 stats.update(ping);
@@ -370,42 +370,48 @@ impl GraphUi {
         for i in 0..data_len {
             let data = self.data.borrow();
             let bar = &data.bars[i];
-            let pos = bar.average();
-            let mut low = bar.min;
-            let mut high = bar.max;
+            let graph_bars = self.bars.borrow();
+            let graph_bar = &graph_bars[i];
+            if bar.count > 0 {
+                let _pos = bar.average().unwrap();
+                let mut low = bar.min;
+                let mut high = bar.max;
 
-            // Clip
-            if low < data.min {
-                low = data.min;
-            }
-            if low > data.max {
-                low = data.max;
-            }
-            if high < data.min {
-                high = data.min;
-            }
-            if high > data.max {
-                high = data.max;
-            }
-
-            let bar_h_ratio = (high - low) as f32 / (data.max - data.min) as f32;
-            let mut bar_h = (h as f32 * bar_h_ratio) as u32;
-            if bar_h < 2 {
-                bar_h = 2;
-            }
-            let top_gap_ratio = (data.max - high) as f32 / (data.max - data.min) as f32;
-            let top_gap = (h as f32 * top_gap_ratio) as i32;
-            {
-                let graph_bars = self.bars.borrow();
-                let graph_bar = graph_bars.get(i).unwrap();
-                graph_bar.set_size(w / data_len as u32, bar_h);
-                graph_bar.set_position((w / data_len as u32 * i as u32) as i32 + l, top_gap + t);
-                if bar.timeout {
-                    // graph_bar
+                // Clip
+                if low < data.min {
+                    low = data.min;
                 }
-                let _tip = format!("{} ({},{})", pos, low, high);
-                // let handle = nwg::ControlHandle::from(bar);
-                // self.tooltip.set_text(&handle, &tip);
+                if low > data.max {
+                    low = data.max;
+                }
+                if high < data.min {
+                    high = data.min;
+                }
+                if high > data.max {
+                    high = data.max;
+                }
+
+                let bar_h_ratio = (high - low) as f32 / (data.max - data.min) as f32;
+                let mut bar_h = (h as f32 * bar_h_ratio) as u32;
+                if bar_h < 2 {
+                    bar_h = 2;
+                }
+                let top_gap_ratio = (data.max - high) as f32 / (data.max - data.min) as f32;
+                let top_gap = (h as f32 * top_gap_ratio) as i32;
+                {
+                    graph_bar.set_size(w / data_len as u32, bar_h);
+                    graph_bar
+                        .set_position((w / data_len as u32 * i as u32) as i32 + l, top_gap + t);
+                    if bar.timeout {
+                        // graph_bar set background to red
+                    }
+                    graph_bar.set_visible(true);
+                    // let _tip = format!("{} ({},{})", pos, low, high);
+                    // let handle = nwg::ControlHandle::from(bar);
+                    // self.tooltip.set_text(&handle, &tip);
+                }
+            } else {
+                graph_bar.set_visible(false);
             }
         }
     }
