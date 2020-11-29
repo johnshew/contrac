@@ -46,7 +46,7 @@ impl AppData {
         return self.total as f32 / self.count as f32;
     }
 
-    fn add_observation(&mut self, timestamp_in_nano: u128, response_time_in_milli: Option<u16>) {
+    fn record_observation(&mut self, timestamp_in_nano: u128, response_time_in_milli: Option<u16>) {
         if let Some(ping) = response_time_in_milli {
             self.count += 1;
             if ping < self.min {
@@ -67,25 +67,25 @@ pub struct BasicApp {
     data: RefCell<AppData>,
 
     #[nwg_control(size: (300, 135), position: (300, 300), title: "Basic example", flags: "MAIN_WINDOW|VISIBLE")]
-    #[nwg_events( OnWindowClose: [BasicApp::say_goodbye], OnInit: [BasicApp::on_init] )]
+    #[nwg_events( OnWindowClose: [BasicApp::on_window_close], OnInit: [BasicApp::on_window_init] )]
     window: nwg::Window,
 
     #[nwg_control(interval: 1000, stopped: false)]
-    #[nwg_events( OnTimerTick: [BasicApp::timer_tick] )]
+    #[nwg_events( OnTimerTick: [BasicApp::on_timer_tick] )]
     timer: nwg::Timer,
 
     #[nwg_resource(source_file: Some("./resources/cog.ico"))]
     icon: nwg::Icon,
 
     #[nwg_control(icon: Some(&data.icon), tip: Some("Connection Tracker"))]
-    #[nwg_events(MousePressLeftUp: [BasicApp::show_menu], OnContextMenu: [BasicApp::show_menu])]
+    #[nwg_events(MousePressLeftUp: [BasicApp::on_tray_show_menu], OnContextMenu: [BasicApp::on_tray_show_menu])]
     tray: nwg::TrayNotification,
 
     #[nwg_control(parent: window, popup: true)]
     tray_menu: nwg::Menu,
 
     #[nwg_control(parent: tray_menu, text: "Save Report")]
-    #[nwg_events(OnMenuItemSelected: [BasicApp::menu_item_save_report])]
+    #[nwg_events(OnMenuItemSelected: [BasicApp::on_save_report_menu_item_selected])]
     tray_item1: nwg::MenuItem,
 
     // Main UX
@@ -100,34 +100,28 @@ pub struct BasicApp {
     #[nwg_layout_item(layout: grid, col: 0,  row: 1)]
     message: nwg::Label,
 
-    #[nwg_control] // ( flags:"BORDER")]
+    #[nwg_control] // maybe? ( flags:"BORDER")]
     #[nwg_layout_item(layout: grid, col: 0, row: 2, row_span: 2)]
     graph_frame: nwg::Frame,
 
     #[nwg_partial(parent: graph_frame)]
-    // #[nwg_events( (save_btn, OnButtonClick): [PartialDemo::save] )]
     graph: GraphUi,
 
-    #[nwg_control(text: "Clear")]
+    #[nwg_control(text: "Reset")]
     #[nwg_layout_item(layout: grid, col: 0,  row: 4)]
-    #[nwg_events( OnButtonClick: [BasicApp::clear] )]
-    clear_button: nwg::Button,
-    // save_file_dialog: nwg::FileDialog,
+    #[nwg_events( OnButtonClick: [BasicApp::on_reset_click] )]
+    reset_button: nwg::Button,
 }
 
 impl BasicApp {
-    fn on_init(&self) {
+    fn on_window_init(&self) {
         self.slider.set_range_min(0);
         self.slider.set_range_max(100);
         self.graph.init(30, 0, 20);
-        // nwg::FileDialog::builder()
-        // .action(nwg::FileDialogAction::Save)
-        // .title("Save a file")
-        // .filters("Text(*.txt)|Any(*.*)")
-        // .build(&mut &self.save_file_dialog);
+        self.graph.on_resize();
     }
 
-    fn clear(&self) {
+    fn on_reset_click(&self) {
         let mut data = self.data.borrow_mut();
         data.count = 0;
         data.total = 0;
@@ -136,11 +130,11 @@ impl BasicApp {
         data.probes.clear();
     }
 
-    fn say_goodbye(&self) {
+    fn on_window_close(&self) {
         nwg::stop_thread_dispatch();
     }
 
-    fn timer_tick(&self) {
+    fn on_timer_tick(&self) {
         let pinger = Pinger::new().unwrap();
         let mut buffer = Buffer::new();
         let dst = String::from("1.1.1.1")
@@ -164,7 +158,7 @@ impl BasicApp {
         // Update data
         {
             let mut data = self.data.borrow_mut();
-            data.add_observation(timestamp, ping_response);
+            data.record_observation(timestamp, ping_response);
         }
 
         //update UX
@@ -195,7 +189,7 @@ impl BasicApp {
         }
     }
 
-    fn show_menu(&self) {
+    fn on_tray_show_menu(&self) {
         let (x, y) = nwg::GlobalCursor::position();
         self.tray_menu.popup(x, y);
     }
@@ -218,13 +212,13 @@ impl BasicApp {
         Ok(())
     }
 
-    fn menu_item_save_report(&self) {
+    fn on_save_report_menu_item_selected(&self) {
         self.write_log().unwrap();
         let message = format!("Report saved");
-        self.notification(&message);
+        self.display_notification(&message);
     }
 
-    fn notification(&self, message: &str) {
+    fn display_notification(&self, message: &str) {
         let flags = nwg::TrayNotificationFlags::USER_ICON | nwg::TrayNotificationFlags::LARGE_ICON;
         self.tray
             .show("Status", Some(message), Some(flags), Some(&self.icon));
