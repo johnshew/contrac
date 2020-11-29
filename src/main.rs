@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+// #![allow(dead_code)]
 
 use chrono::{DateTime, Duration, Local};
 use std::cell::RefCell;
@@ -20,10 +20,7 @@ use nwg::stretch::{
 use nwg::NativeUi;
 
 
-const PCT_50: D = D::Percent(0.5);
-const PCT_100: D = D::Percent(1.0);
 const PT_10: D = D::Points(10.0);
-const PT_5: D = D::Points(5.0);
 const PT_0: D = D::Points(0.0);
 const PAD_10: Rect<D> = Rect {
     start: PT_10,
@@ -36,12 +33,6 @@ const PAD_10_TOP_BOTTON: Rect<D> = Rect {
     end: PT_0,
     top: PT_10,
     bottom: PT_10,
-};
-const MARGIN: Rect<D> = Rect {
-    start: PT_5,
-    end: PT_5,
-    top: PT_5,
-    bottom: PT_5,
 };
 
 mod graph;
