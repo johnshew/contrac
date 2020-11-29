@@ -1,5 +1,9 @@
 use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Utc};
 
+use winapi::um::winuser::{PostMessageW};
+use winapi::shared::windef::{HWND};
+use winapi::shared::minwindef::{UINT,WPARAM, LPARAM, BOOL};
+
 pub fn timestamp_to_datetime(timestamp_in_nanoseconds: u128) -> DateTime<Local> {
     let date_time = NaiveDateTime::from_timestamp(
         (timestamp_in_nanoseconds / 1_000_000_000) as i64,
@@ -11,4 +15,22 @@ pub fn timestamp_to_datetime(timestamp_in_nanoseconds: u128) -> DateTime<Local> 
 
 pub fn _datetime_to_timestamp<T: TimeZone>(datetime: &DateTime<T>) -> u128 {
     (datetime.timestamp() * 1_000_000_000 + datetime.timestamp_nanos()) as u128
+}
+
+fn check_hwnd(handle: &nwg::ControlHandle) -> HWND {
+    use winapi::um::winuser::IsWindow;
+
+    if handle.blank() { panic!("not bound"); }
+    match handle.hwnd() {
+        Some(hwnd) => match unsafe { IsWindow(hwnd) } {
+            0 => { panic!("The window handle is no longer valid. This usually means the control was freed by the OS"); },
+            _ => hwnd
+        },
+        None => { panic!("bad_handle"); }
+    }
+}
+#[allow(non_snake_case)]
+pub fn PostMessage(control_handle: &nwg::ControlHandle, Msg: UINT, wParam: WPARAM, lParam: LPARAM) -> BOOL {
+    let handle = check_hwnd(control_handle);
+    unsafe { PostMessageW(handle, Msg, wParam, lParam) }
 }
