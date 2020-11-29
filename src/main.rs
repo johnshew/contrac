@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use chrono::{DateTime, Duration, Local};
 use std::cell::RefCell;
 use std::collections::VecDeque;
@@ -12,16 +14,23 @@ extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
 use nwg::stretch::{
     geometry::{Rect, Size},
-    style::{Dimension as D, FlexDirection, JustifyContent, Style},
+    style::{Dimension as D, FlexDirection, JustifyContent, AlignItems},
 };
 use nwg::NativeUi;
 const PCT_50: D = D::Percent(0.5);
 const PCT_100: D = D::Percent(1.0);
 const PT_10: D = D::Points(10.0);
 const PT_5: D = D::Points(5.0);
+const PT_0: D = D::Points(0.0);
 const PAD_10: Rect<D> = Rect {
     start: PT_10,
     end: PT_10,
+    top: PT_10,
+    bottom: PT_10,
+};
+const PAD_10_TOP_BOTTON: Rect<D> = Rect {
+    start: PT_0,
+    end: PT_0,
     top: PT_10,
     bottom: PT_10,
 };
@@ -110,40 +119,42 @@ pub struct BasicApp {
     tray_item1: nwg::MenuItem,
 
     // Main UX
+    
     #[nwg_layout(parent: window, padding: PAD_10, auto_spacing: None, flex_direction: FlexDirection::Column, justify_content: JustifyContent::Center)]
     main_layout: nwg::FlexboxLayout,
 
-    #[nwg_control( flags:"VISIBLE|HORIZONTAL|RANGE")]
-    #[nwg_layout_item(layout: main_layout, size: Size { width: D::Percent(1.0), height: D::Points(40.0)})]
-    slider: nwg::TrackBar,
-
     #[nwg_control] // maybe? ( flags:"BORDER")]
-    #[nwg_layout_item(layout: main_layout, size: Size { width: D::Percent(1.0), height: D::Points(290.0)})]
+    #[nwg_layout_item(layout: main_layout,  min_size: Size { width: D::Percent(1.0), height: D::Points(100.0) }, size: Size { width: D::Percent(1.0), height: D::Points(1000.0)})]
     graph_frame: nwg::Frame,
 
     #[nwg_partial(parent: graph_frame)]
     graph: GraphUi,
 
+    #[nwg_control( flags:"VISIBLE|HORIZONTAL|RANGE")]
+    #[nwg_layout_item(layout: main_layout, min_size: Size { width: D::Percent(1.0), height: D::Points(40.0)}, max_size: Size { width: D::Percent(1.0), height: D::Points(40.0)})]
+    slider: nwg::TrackBar,
+
+    #[nwg_control]
+    #[nwg_layout_item(layout: main_layout,  min_size: Size { width: D::Percent(1.0), height: D::Points(40.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(40.0) },)]
+    message: nwg::Label,
+
     #[nwg_control(parent: window, flags: "VISIBLE")]
-    #[nwg_layout_item(layout: main_layout, size: Size { width: D::Percent(1.0), height: D::Points(290.0)})]
+    #[nwg_layout_item(layout: main_layout, min_size: Size { width: D::Percent(1.0), height: D::Points(60.0)}, max_size: Size { width: D::Percent(1.0), height: D::Points(60.0)})]
     button_frame: nwg::Frame,
 
-    #[nwg_layout(parent: button_frame, padding: PAD_10, auto_spacing: None, flex_direction: FlexDirection::Row)]
+    #[nwg_layout(parent: button_frame, padding: PAD_10_TOP_BOTTON,  auto_spacing: None, flex_direction: FlexDirection::Row, align_items: AlignItems::Center, justify_content: JustifyContent::FlexEnd)]
     button_layout: nwg::FlexboxLayout,
 
     #[nwg_control(parent: button_frame, text: "Reset")]
-    #[nwg_layout_item(layout: button_layout,  size: Size { width: D::Percent(0.4), height: D::Points(40.0) },)]
+    #[nwg_layout_item(layout: button_layout,  size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
     #[nwg_events( OnButtonClick: [BasicApp::on_reset_click] )]
     reset_button: nwg::Button,
 
     #[nwg_control(parent: button_frame, text: "Save Reports")]
-    #[nwg_layout_item(layout: button_layout,  size: Size { width: D::Percent(0.4), height: D::Points(40.0) },)]
+    #[nwg_layout_item(layout: button_layout,  size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
     #[nwg_events( OnButtonClick: [BasicApp::on_reset_click] )]
     save_report_button: nwg::Button,
 
-    #[nwg_control]
-    #[nwg_layout_item(layout: main_layout)]
-    message: nwg::Label,
 }
 
 impl BasicApp {
