@@ -8,15 +8,18 @@ use std::io::prelude::*;
 use std::net::IpAddr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use winping::{Buffer, Pinger};
+use winapi::um::winuser::{ WM_SYSCOMMAND, SC_RESTORE};
 
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
 use nwg::stretch::{
     geometry::{Rect, Size},
-    style::{Dimension as D, FlexDirection, JustifyContent, AlignItems},
+    style::{AlignItems, Dimension as D, FlexDirection, JustifyContent},
 };
 use nwg::NativeUi;
+
+
 const PCT_50: D = D::Percent(0.5);
 const PCT_100: D = D::Percent(1.0);
 const PT_10: D = D::Points(10.0);
@@ -97,7 +100,7 @@ pub struct BasicApp {
     data: RefCell<AppData>,
 
     #[nwg_control(size: (600, 400), position: (300, 300), title: "Connection Tracker", flags: "MAIN_WINDOW|VISIBLE")]
-    #[nwg_events( OnWindowClose: [BasicApp::on_window_close], OnInit: [BasicApp::on_window_init] )]
+    #[nwg_events( OnWindowClose: [BasicApp::on_window_close], OnInit: [BasicApp::on_window_init], OnWindowMinimize: [BasicApp::on_window_minimize] )]
     window: nwg::Window,
 
     #[nwg_control(interval: 1000, stopped: false)]
@@ -108,7 +111,7 @@ pub struct BasicApp {
     icon: nwg::Icon,
 
     #[nwg_control(icon: Some(&data.icon), tip: Some("Connection Tracker"))]
-    #[nwg_events(MousePressLeftUp: [BasicApp::on_tray_show_menu], OnContextMenu: [BasicApp::on_tray_show_menu])]
+    #[nwg_events(MousePressLeftUp: [BasicApp::on_tray_mouse_press_left_up], OnContextMenu: [BasicApp::on_tray_show_menu])]
     tray: nwg::TrayNotification,
 
     #[nwg_control(parent: window, popup: true)]
@@ -119,7 +122,6 @@ pub struct BasicApp {
     tray_item1: nwg::MenuItem,
 
     // Main UX
-    
     #[nwg_layout(parent: window, padding: PAD_10, auto_spacing: None, flex_direction: FlexDirection::Column, justify_content: JustifyContent::Center)]
     main_layout: nwg::FlexboxLayout,
 
@@ -152,9 +154,8 @@ pub struct BasicApp {
 
     #[nwg_control(parent: button_frame, text: "Save Reports")]
     #[nwg_layout_item(layout: button_layout,  size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
-    #[nwg_events( OnButtonClick: [BasicApp::on_reset_click] )]
+    #[nwg_events( OnButtonClick: [BasicApp::on_save_report_menu_item_selected] )]
     save_report_button: nwg::Button,
-
 }
 
 impl BasicApp {
@@ -175,7 +176,12 @@ impl BasicApp {
     }
 
     fn on_window_close(&self) {
+        self.write_log().expect("Problem writing logs");
         nwg::stop_thread_dispatch();
+    }
+
+    fn on_window_minimize(&self) {
+        self.window.set_visible(false);
     }
 
     fn on_timer_tick(&self) {
@@ -238,21 +244,62 @@ impl BasicApp {
         self.tray_menu.popup(x, y);
     }
 
+    fn on_tray_mouse_press_left_up(&self) {
+        self.window.set_visible(true);
+        utils::PostMessage(&self.window.handle, WM_SYSCOMMAND, SC_RESTORE, 0);
+    }
+
     fn write_log(&self) -> std::io::Result<()> {
-        let mut f = File::create("report.txt")?;
-        let data = self.data.borrow();
-        for (time, rtt) in &data.probes {
-            let date_time = utils::timestamp_to_datetime(*time);
-            let result = if rtt.is_some() {
-                rtt.unwrap().to_string()
-            } else {
-                String::from("timeout")
-            };
-            let message = format!("{:0}, {}\r\n", date_time, result);
-            let message = message.as_bytes();
-            f.write_all(message).unwrap();
+        {
+            let mut f = File::create("log.txt")?;
+            let data = self.data.borrow();
+            for (time, rtt) in &data.probes {
+                let date_time = utils::timestamp_to_datetime(*time);
+                let result = if rtt.is_some() {
+                    rtt.unwrap().to_string()
+                } else {
+                    String::from("timeout")
+                };
+                let message = format!("{:0}, {}\r\n", date_time, result);
+                let message = message.as_bytes();
+                f.write_all(message).unwrap();
+            }
+            f.sync_all()?;
         }
-        f.sync_all()?;
+
+        {
+            enum TimeoutTracker {
+                Active { start: DateTime<Local> },
+                Nominal,
+            };
+
+            let mut f = File::create("timeouts.txt")?;
+            let data = self.data.borrow();
+            let mut timeout_status = TimeoutTracker::Nominal;
+
+            for (time, rtt) in &data.probes {
+                if rtt.is_some() {
+                    if let TimeoutTracker::Active { start } = timeout_status {
+                        let end = utils::timestamp_to_datetime(*time);
+                        let offline_duration = (end-start).num_milliseconds() as f32 / 1_000.0;
+                        let message = format!("{}, {}, {}\r\n", start, end, offline_duration);
+                        f.write_all(message.as_bytes()).unwrap();
+                        timeout_status = TimeoutTracker::Nominal;
+                    } else {
+                        continue;
+                    }
+                } else {
+                    if let TimeoutTracker::Active { start: _ } = timeout_status {
+                        continue;
+                    } else {
+                        timeout_status = TimeoutTracker::Active {
+                            start: utils::timestamp_to_datetime(*time),
+                        }
+                    }
+                }
+            }
+            f.sync_all()?;
+        }
         Ok(())
     }
 
