@@ -26,6 +26,7 @@ pub struct AppData {
     max: u16,
     probes: VecDeque<(u128, Option<u16>)>,
     last_full_update: DateTime<Local>,
+    last_sample_timeout: bool,
 }
 
 impl Default for AppData {
@@ -37,6 +38,7 @@ impl Default for AppData {
             max: 0,
             probes: VecDeque::new(),
             last_full_update: Local::now(),
+            last_sample_timeout: false,
         }
     }
 }
@@ -155,16 +157,12 @@ impl BasicApp {
             }
         };
 
-        // Update data
+        // Update data and UX
         {
             let mut data = self.data.borrow_mut();
             data.record_observation(timestamp, ping_response);
-        }
-
-        //update UX
-        {
-            let mut data = self.data.borrow_mut();
             if let Some(rtt) = ping_response {
+                data.last_sample_timeout = false;
                 let message = format!(
                     "{} ({}:{}) {:.1}ms avg",
                     rtt,
@@ -179,6 +177,11 @@ impl BasicApp {
             } else {
                 self.message.set_text("Timeout");
                 self.slider.set_pos(300);
+                if !data.last_sample_timeout {
+                    self.display_notification("Disconnected");
+                }
+                data.last_sample_timeout = true;
+
             }
             self.graph.set_values(&data.probes);
             let datetime = utils::timestamp_to_datetime(timestamp);
@@ -186,6 +189,7 @@ impl BasicApp {
                 self.graph.on_resize();
                 data.last_full_update = datetime;
             }
+
         }
     }
 
