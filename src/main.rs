@@ -8,10 +8,29 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use winping::{Buffer, Pinger};
 
 extern crate native_windows_derive as nwd;
-extern crate native_windows_gui as nwg; // Optional. Only if the derive macro is used.
-
+extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
+use nwg::stretch::{
+    geometry::{Rect, Size},
+    style::{Dimension as D, FlexDirection, JustifyContent, Style},
+};
 use nwg::NativeUi;
+const PCT_50: D = D::Percent(0.5);
+const PCT_100: D = D::Percent(1.0);
+const PT_10: D = D::Points(10.0);
+const PT_5: D = D::Points(5.0);
+const PAD_10: Rect<D> = Rect {
+    start: PT_10,
+    end: PT_10,
+    top: PT_10,
+    bottom: PT_10,
+};
+const MARGIN: Rect<D> = Rect {
+    start: PT_5,
+    end: PT_5,
+    top: PT_5,
+    bottom: PT_5,
+};
 
 mod graph;
 mod stats;
@@ -68,7 +87,7 @@ impl AppData {
 pub struct BasicApp {
     data: RefCell<AppData>,
 
-    #[nwg_control(size: (300, 135), position: (300, 300), title: "Basic example", flags: "MAIN_WINDOW|VISIBLE")]
+    #[nwg_control(size: (600, 400), position: (300, 300), title: "Connection Tracker", flags: "MAIN_WINDOW|VISIBLE")]
     #[nwg_events( OnWindowClose: [BasicApp::on_window_close], OnInit: [BasicApp::on_window_init] )]
     window: nwg::Window,
 
@@ -86,33 +105,45 @@ pub struct BasicApp {
     #[nwg_control(parent: window, popup: true)]
     tray_menu: nwg::Menu,
 
-    #[nwg_control(parent: tray_menu, text: "Save Report")]
+    #[nwg_control(parent: tray_menu, text: "Save Reports")]
     #[nwg_events(OnMenuItemSelected: [BasicApp::on_save_report_menu_item_selected])]
     tray_item1: nwg::MenuItem,
 
     // Main UX
-    #[nwg_layout(parent: window, spacing: 1)]
-    grid: nwg::GridLayout,
+    #[nwg_layout(parent: window, padding: PAD_10, auto_spacing: None, flex_direction: FlexDirection::Column, justify_content: JustifyContent::Center)]
+    main_layout: nwg::FlexboxLayout,
 
     #[nwg_control( flags:"VISIBLE|HORIZONTAL|RANGE")]
-    #[nwg_layout_item(layout: grid, col: 0,  row: 0)]
+    #[nwg_layout_item(layout: main_layout, size: Size { width: D::Percent(1.0), height: D::Points(40.0)})]
     slider: nwg::TrackBar,
 
-    #[nwg_control(text: "", h_align: nwg::HTextAlign::Center)]
-    #[nwg_layout_item(layout: grid, col: 0,  row: 1)]
-    message: nwg::Label,
-
     #[nwg_control] // maybe? ( flags:"BORDER")]
-    #[nwg_layout_item(layout: grid, col: 0, row: 2, row_span: 2)]
+    #[nwg_layout_item(layout: main_layout, size: Size { width: D::Percent(1.0), height: D::Points(290.0)})]
     graph_frame: nwg::Frame,
 
     #[nwg_partial(parent: graph_frame)]
     graph: GraphUi,
 
-    #[nwg_control(text: "Reset")]
-    #[nwg_layout_item(layout: grid, col: 0,  row: 4)]
+    #[nwg_control(parent: window, flags: "VISIBLE")]
+    #[nwg_layout_item(layout: main_layout, size: Size { width: D::Percent(1.0), height: D::Points(290.0)})]
+    button_frame: nwg::Frame,
+
+    #[nwg_layout(parent: button_frame, padding: PAD_10, auto_spacing: None, flex_direction: FlexDirection::Row)]
+    button_layout: nwg::FlexboxLayout,
+
+    #[nwg_control(parent: button_frame, text: "Reset")]
+    #[nwg_layout_item(layout: button_layout,  size: Size { width: D::Percent(0.4), height: D::Points(40.0) },)]
     #[nwg_events( OnButtonClick: [BasicApp::on_reset_click] )]
     reset_button: nwg::Button,
+
+    #[nwg_control(parent: button_frame, text: "Save Reports")]
+    #[nwg_layout_item(layout: button_layout,  size: Size { width: D::Percent(0.4), height: D::Points(40.0) },)]
+    #[nwg_events( OnButtonClick: [BasicApp::on_reset_click] )]
+    save_report_button: nwg::Button,
+
+    #[nwg_control]
+    #[nwg_layout_item(layout: main_layout)]
+    message: nwg::Label,
 }
 
 impl BasicApp {
@@ -175,13 +206,12 @@ impl BasicApp {
                 self.slider
                     .set_selection_range_pos(data.min as usize..data.max as usize);
             } else {
-                self.message.set_text("Timeout");
+                self.message.set_text("Disconnected");
                 self.slider.set_pos(300);
                 if !data.last_sample_timeout {
                     self.display_notification("Disconnected");
                 }
                 data.last_sample_timeout = true;
-
             }
             self.graph.set_values(&data.probes);
             let datetime = utils::timestamp_to_datetime(timestamp);
@@ -189,7 +219,6 @@ impl BasicApp {
                 self.graph.on_resize();
                 data.last_full_update = datetime;
             }
-
         }
     }
 
@@ -230,7 +259,6 @@ impl BasicApp {
 }
 
 fn main() -> std::io::Result<()> {
-
     nwg::init().expect("Failed to init Native Windows GUI");
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
 
