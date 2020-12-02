@@ -10,6 +10,7 @@ use nwd::{NwgPartial};
 
 use super::stats;
 use super::utils;
+use crate::{Sample};
 
 pub struct GraphData {
     bar_count: u16,
@@ -73,7 +74,7 @@ impl GraphUi {
         }
     }
 
-    pub fn set_values(&self, probes: &VecDeque<(u128, Option<u16>)>) {
+    pub fn set_values(&self, samples: &VecDeque<Sample>) {
         // Loop backward in time in 10 second intervals aligned to clock.
         // so find now to the nearest forward 10 second aligned time in nanoseconds and then iterate backward in time.alloc
         // if there is a timeout in that interval then that bar should be red.
@@ -86,7 +87,7 @@ impl GraphUi {
             .expect("time trucation should always work");
         let mut start_of_interval = end_of_interval - interval;
 
-        let mut probe_count_remaining = probes.len();
+        let mut probe_count_remaining = samples.len();
 
         let bars = self.bars.borrow();
         let mut bar_is_complete = false;
@@ -96,7 +97,7 @@ impl GraphUi {
             while !bar_is_complete {
                 if probe_count_remaining > 0 {
                     // let Some(thing) = probes[probe_count_remaining] {
-                    let (timestamp, _ping) = probes[probe_count_remaining - 1]; //**thing;
+                    let (_address, timestamp, _ping) = samples[probe_count_remaining - 1]; //**thing;
                     let datetime = utils::timestamp_to_datetime(timestamp);
                     assert!(datetime < end_of_interval, "confirming time");
                     if datetime < start_of_interval {
@@ -111,7 +112,7 @@ impl GraphUi {
                     bar_is_complete = false;
                     break;
                 }
-                let (_timestamp, ping) = probes[probe_count_remaining - 1]; 
+                let (_address, _timestamp, ping) = samples[probe_count_remaining - 1]; 
                 probe_count_remaining -= 1;
                 stats.update(ping);
             }

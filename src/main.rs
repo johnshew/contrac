@@ -6,9 +6,11 @@ use std::collections::VecDeque;
 use std::fs::File;
 use std::io::prelude::*;
 use std::net::IpAddr;
+use std::sync::mpsc::{channel, Receiver, Sender};
+use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
+use winapi::um::winuser::{SC_RESTORE, WM_SYSCOMMAND};
 use winping::{Buffer, Pinger};
-use winapi::um::winuser::{ WM_SYSCOMMAND, SC_RESTORE};
 
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
@@ -18,7 +20,6 @@ use nwg::stretch::{
     style::{AlignItems, Dimension as D, FlexDirection, JustifyContent},
 };
 use nwg::NativeUi;
-
 
 const PT_10: D = D::Points(10.0);
 const PT_0: D = D::Points(0.0);
@@ -41,26 +42,33 @@ mod utils;
 
 use crate::graph::*;
 
+pub type Sample = (IpAddr, u128, Option<u16>);
+
 pub struct AppData {
     count: u32,
     total: u32,
     min: u16,
     max: u16,
-    probes: VecDeque<(u128, Option<u16>)>,
+    samples: VecDeque<Sample>,
     last_full_update: DateTime<Local>,
     last_sample_timeout: bool,
+    samples_receiver: Receiver<Sample>,
+    samples_sender: Sender<Sample>,
 }
 
 impl Default for AppData {
     fn default() -> Self {
+        let (s, r) = channel::<Sample>();
         AppData {
             count: 0,
             total: 0,
             min: u16::MAX,
             max: 0,
-            probes: VecDeque::new(),
+            samples: VecDeque::new(),
             last_full_update: Local::now(),
             last_sample_timeout: false,
+            samples_receiver: r,
+            samples_sender: s,
         }
     }
 }
@@ -70,7 +78,12 @@ impl AppData {
         return self.total as f32 / self.count as f32;
     }
 
-    fn record_observation(&mut self, timestamp_in_nano: u128, response_time_in_milli: Option<u16>) {
+    fn record_observation(
+        &mut self,
+        address: IpAddr,
+        timestamp_in_nano: u128,
+        response_time_in_milli: Option<u16>,
+    ) {
         if let Some(ping) = response_time_in_milli {
             self.count += 1;
             if ping < self.min {
@@ -81,8 +94,8 @@ impl AppData {
             };
             self.total += ping as u32;
         }
-        self.probes
-            .push_back((timestamp_in_nano, response_time_in_milli));
+        self.samples
+            .push_back((address, timestamp_in_nano, response_time_in_milli));
     }
 }
 
@@ -163,7 +176,7 @@ impl BasicApp {
         data.total = 0;
         data.min = u16::MAX;
         data.max = 0;
-        data.probes.clear();
+        data.samples.clear();
     }
 
     fn on_window_close(&self) {
@@ -196,10 +209,28 @@ impl BasicApp {
             }
         };
 
-        // Update data and UX
+        {
+            // check for info on the channel
+            let mut done = false;
+            while !done {
+                let sample;
+                {
+                    let data = self.data.borrow();
+                    let receiver = &data.samples_receiver;
+                    sample = receiver.try_recv();
+                }
+                if let Ok(sample) = sample {
+                    let mut data = self.data.borrow_mut();
+                    data.samples.push_back(sample);
+                } else {
+                    done = true;
+                }
+            }
+        }
+
         {
             let mut data = self.data.borrow_mut();
-            data.record_observation(timestamp, ping_response);
+            data.record_observation(dst, timestamp, ping_response);
             if let Some(rtt) = ping_response {
                 data.last_sample_timeout = false;
                 let message = format!(
@@ -221,7 +252,7 @@ impl BasicApp {
                 }
                 data.last_sample_timeout = true;
             }
-            self.graph.set_values(&data.probes);
+            self.graph.set_values(&data.samples);
             let datetime = utils::timestamp_to_datetime(timestamp);
             if datetime > (data.last_full_update + Duration::milliseconds(250)) {
                 self.graph.on_resize();
@@ -244,14 +275,14 @@ impl BasicApp {
         {
             let mut f = File::create("log.txt")?;
             let data = self.data.borrow();
-            for (time, rtt) in &data.probes {
+            for (address, time, rtt) in &data.samples {
                 let date_time = utils::timestamp_to_datetime(*time);
                 let result = if rtt.is_some() {
                     rtt.unwrap().to_string()
                 } else {
                     String::from("timeout")
                 };
-                let message = format!("{:0}, {}\r\n", date_time, result);
+                let message = format!("{}, {:0}, {}\r\n", address, date_time, result);
                 let message = message.as_bytes();
                 f.write_all(message).unwrap();
             }
@@ -268,11 +299,11 @@ impl BasicApp {
             let data = self.data.borrow();
             let mut timeout_status = TimeoutTracker::Nominal;
 
-            for (time, rtt) in &data.probes {
+            for (_address, time, rtt) in &data.samples {
                 if rtt.is_some() {
                     if let TimeoutTracker::Active { start } = timeout_status {
                         let end = utils::timestamp_to_datetime(*time);
-                        let offline_duration = (end-start).num_milliseconds() as f32 / 1_000.0;
+                        let offline_duration = (end - start).num_milliseconds() as f32 / 1_000.0;
                         let message = format!("{}, {}, {}\r\n", start, end, offline_duration);
                         f.write_all(message.as_bytes()).unwrap();
                         timeout_status = TimeoutTracker::Nominal;
@@ -311,7 +342,18 @@ fn main() -> std::io::Result<()> {
     nwg::init().expect("Failed to init Native Windows GUI");
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
 
-    let _app = BasicApp::build_ui(Default::default()).expect("Failed to build UI");
+    let app = BasicApp::build_ui(Default::default()).expect("Failed to build UI");
+    let sender = app.data.borrow().samples_sender.clone();
+    thread::spawn(move || {
+        let dst = String::from("8.8.8.8")
+            .parse::<IpAddr>()
+            .expect("Could not parse IP Address");
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Bad time value")
+            .as_nanos();
+        sender.send((dst, timestamp, Some(10))).expect("Should have sent");
+    });
     nwg::dispatch_thread_events();
     Ok(())
 }
