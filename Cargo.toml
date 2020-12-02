@@ -1,5 +1,5 @@
 [package]
-name = "contrack"
+name = "contrac"
 version = "0.1.0"
 authors = ["John Shewchuk <johnshew@users.noreply.github.com>"]
 edition = "2018"

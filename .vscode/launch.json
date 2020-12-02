@@ -7,15 +7,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'contrack'",
+            "name": "Debug executable 'contrac'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=contrack",
-                    "--package=contrack"
+                    "--bin=contrac",
+                    "--package=contrac"
                 ],
                 "filter": {
-                    "name": "contrack",
+                    "name": "contrac",
                     "kind": "bin"
                 }
             },
@@ -25,16 +25,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'contrack'",
+            "name": "Debug unit tests in executable 'contrac'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=contrack",
-                    "--package=contrack"
+                    "--bin=contrac",
+                    "--package=contrac"
                 ],
                 "filter": {
-                    "name": "contrack",
+                    "name": "contrac",
                     "kind": "bin"
                 }
             },
