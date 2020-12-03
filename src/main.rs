@@ -295,7 +295,6 @@ impl BasicApp {
                     // if offline_duration < 1.0 { continue; }  // uncomment to ignore small duration timeouts
                     let message = format!("{}, {}, {}\r\n", start, end, offline_duration);
                     file.write_all(message.as_bytes()).unwrap();
-                    
                 } else {
                     continue;
                 }
@@ -345,9 +344,10 @@ impl BasicApp {
                         ping_response = None;
                     }
                 };
-                sender
-                    .send((dst, timestamp, ping_response))
-                    .expect("Should have sent");
+                if let Err(_e) = sender.send((dst, timestamp, ping_response)) {
+                    break; // stop the loop if there is an error.
+                }
+                #[allow(deprecated)]
                 thread::sleep_ms(delay_millis);
             }
         });
@@ -361,7 +361,7 @@ fn main() -> std::io::Result<()> {
     let app = BasicApp::build_ui(Default::default()).expect("Failed to build UI");
     app.spawn_pinger("1.1.1.2", 600);
     app.spawn_pinger("8.8.8.8", 600);
-    app.spawn_pinger("208.67.222.222",600);
+    app.spawn_pinger("208.67.222.222", 600);
     nwg::dispatch_thread_events();
     Ok(())
 }

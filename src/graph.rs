@@ -69,8 +69,6 @@ impl GraphUi {
         if data.bar_count != data.bars.len() as u16 {
             data.bars
                 .resize_with(graph_bars_len as usize, Default::default);
-            let len = data.bars.len();
-            println!("{}", len);
         }
     }
 
