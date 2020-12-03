@@ -7,7 +7,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::net::IpAddr;
 use std::sync::mpsc::{channel, Receiver, Sender};
-use std::thread;
+use std::thread; // ::{spawn, JoinHandle};
 use std::time::{SystemTime, UNIX_EPOCH};
 use winapi::um::winuser::{SC_RESTORE, WM_SYSCOMMAND};
 use winping::{Buffer, Pinger};
@@ -78,12 +78,8 @@ impl AppData {
         return self.total as f32 / self.count as f32;
     }
 
-    fn record_observation(
-        &mut self,
-        address: IpAddr,
-        timestamp_in_nano: u128,
-        response_time_in_milli: Option<u16>,
-    ) {
+    fn record_observation(&mut self, sample: Sample) {
+        let (address, timestamp_in_nano, response_time_in_milli) = sample;
         if let Some(ping) = response_time_in_milli {
             self.count += 1;
             if ping < self.min {
@@ -96,6 +92,12 @@ impl AppData {
         }
         self.samples
             .push_back((address, timestamp_in_nano, response_time_in_milli));
+    }
+
+    fn sort(&mut self) {
+        self.samples
+            .make_contiguous()
+            .sort_by(|(_aa, at, _ap), (_ba, bt, _bp)| at.cmp(bt));
     }
 }
 
@@ -180,7 +182,7 @@ impl BasicApp {
     }
 
     fn on_window_close(&self) {
-        self.write_log().expect("Problem writing logs");
+        self.write_log();
         nwg::stop_thread_dispatch();
     }
 
@@ -188,53 +190,16 @@ impl BasicApp {
         self.window.set_visible(false);
     }
 
-    fn on_timer_tick(&self) {
-        let pinger = Pinger::new().unwrap();
-        let mut buffer = Buffer::new();
-        let dst = String::from("1.1.1.1")
-            .parse::<IpAddr>()
-            .expect("Could not parse IP Address");
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Bad time value")
-            .as_nanos();
-        let ping_response;
-
-        match pinger.send(dst, &mut buffer) {
-            Ok(rtt) => {
-                ping_response = Some(rtt as u16);
-            }
-            Err(_err) => {
-                ping_response = None;
-            }
-        };
-
-        {
-            // check for info on the channel
-            let mut done = false;
-            while !done {
-                let sample;
-                {
-                    let data = self.data.borrow();
-                    let receiver = &data.samples_receiver;
-                    sample = receiver.try_recv();
-                }
-                if let Ok(sample) = sample {
-                    let mut data = self.data.borrow_mut();
-                    data.samples.push_back(sample);
-                } else {
-                    done = true;
-                }
-            }
-        }
-
+    fn process_sample(&self, sample: Sample) {
         {
             let mut data = self.data.borrow_mut();
-            data.record_observation(dst, timestamp, ping_response);
+            data.record_observation(sample);
+            let (dst, _timestamp, ping_response) = sample;
             if let Some(rtt) = ping_response {
                 data.last_sample_timeout = false;
                 let message = format!(
-                    "{} ({}:{}) {:.1}ms avg",
+                    "{}: {} ms ({}:{}) {:.1} avg",
+                    dst,
                     rtt,
                     data.min,
                     data.max,
@@ -252,12 +217,32 @@ impl BasicApp {
                 }
                 data.last_sample_timeout = true;
             }
-            self.graph.set_values(&data.samples);
-            let datetime = utils::timestamp_to_datetime(timestamp);
-            if datetime > (data.last_full_update + Duration::milliseconds(250)) {
-                self.graph.on_resize();
-                data.last_full_update = datetime;
+        }
+    }
+
+    fn on_timer_tick(&self) {
+        // check for info on the channel
+        let mut done = false;
+        while !done {
+            let sample;
+            {
+                let receiver = &self.data.borrow().samples_receiver;
+                sample = receiver.try_recv();
             }
+            if let Ok(s) = sample {
+                self.process_sample(s);
+            } else {
+                done = true;
+            }
+        }
+
+        let datetime = Local::now();
+        let mut data = self.data.borrow_mut();
+        if datetime > (data.last_full_update + Duration::milliseconds(250)) {
+            data.sort();
+            self.graph.set_values(&data.samples);
+            self.graph.on_resize();
+            data.last_full_update = datetime;
         }
     }
 
@@ -271,64 +256,65 @@ impl BasicApp {
         utils::PostMessage(&self.window.handle, WM_SYSCOMMAND, SC_RESTORE, 0);
     }
 
-    fn write_log(&self) -> std::io::Result<()> {
+    fn write_log(&self) {
         {
-            let mut f = File::create("log.txt")?;
-            let data = self.data.borrow();
-            for (address, time, rtt) in &data.samples {
-                let date_time = utils::timestamp_to_datetime(*time);
-                let result = if rtt.is_some() {
-                    rtt.unwrap().to_string()
-                } else {
-                    String::from("timeout")
-                };
-                let message = format!("{}, {:0}, {}\r\n", address, date_time, result);
-                let message = message.as_bytes();
-                f.write_all(message).unwrap();
-            }
-            f.sync_all()?;
+            let mut data = self.data.borrow_mut();
+            data.sort();
         }
+        let data = self.data.borrow();
+        let mut file = File::create("log.txt").expect("file create failed");
 
-        {
-            enum TimeoutTracker {
-                Active { start: DateTime<Local> },
-                Nominal,
+        for (address, time, rtt) in &data.samples {
+            let date_time = utils::timestamp_to_datetime(*time);
+            let result = if rtt.is_some() {
+                rtt.unwrap().to_string()
+            } else {
+                String::from("timeout")
             };
+            let message = format!("{:0}, {}, {}\r\n", date_time, result, address);
+            let message = message.as_bytes();
+            file.write_all(message).unwrap();
+        }
+        file.sync_all().expect("file sync failed");
 
-            let mut f = File::create("timeouts.txt")?;
-            let data = self.data.borrow();
-            let mut timeout_status = TimeoutTracker::Nominal;
+        enum TimeoutTracker {
+            Active { start: DateTime<Local> },
+            Nominal,
+        };
 
-            for (_address, time, rtt) in &data.samples {
-                if rtt.is_some() {
-                    if let TimeoutTracker::Active { start } = timeout_status {
-                        let end = utils::timestamp_to_datetime(*time);
-                        let offline_duration = (end - start).num_milliseconds() as f32 / 1_000.0;
-                        let message = format!("{}, {}, {}\r\n", start, end, offline_duration);
-                        f.write_all(message.as_bytes()).unwrap();
-                        timeout_status = TimeoutTracker::Nominal;
-                    } else {
-                        continue;
-                    }
+        let mut file = File::create("timeouts.txt").expect("file create failed");
+        let mut timeout_status = TimeoutTracker::Nominal;
+        // let samples = data.samples.sort_by()
+
+        for (_address, time, rtt) in &data.samples {
+            if rtt.is_some() {
+                if let TimeoutTracker::Active { start } = timeout_status {
+                    let end = utils::timestamp_to_datetime(*time);
+                    let offline_duration = (end - start).num_milliseconds() as f32 / 1_000.0;
+                    timeout_status = TimeoutTracker::Nominal;
+                    // if offline_duration < 1.0 { continue; }  // uncomment to ignore small duration timeouts
+                    let message = format!("{}, {}, {}\r\n", start, end, offline_duration);
+                    file.write_all(message.as_bytes()).unwrap();
+                    
                 } else {
-                    if let TimeoutTracker::Active { start: _ } = timeout_status {
-                        continue;
-                    } else {
-                        timeout_status = TimeoutTracker::Active {
-                            start: utils::timestamp_to_datetime(*time),
-                        }
+                    continue;
+                }
+            } else {
+                if let TimeoutTracker::Active { start: _ } = timeout_status {
+                    continue;
+                } else {
+                    timeout_status = TimeoutTracker::Active {
+                        start: utils::timestamp_to_datetime(*time),
                     }
                 }
             }
-            f.sync_all()?;
         }
-        Ok(())
+        file.sync_all().expect("file sync failed")
     }
 
     fn on_save_report_menu_item_selected(&self) {
-        self.write_log().unwrap();
-        let message = format!("Report saved");
-        self.display_notification(&message);
+        self.write_log();
+        self.display_notification("Report saved");
     }
 
     fn display_notification(&self, message: &str) {
@@ -336,24 +322,46 @@ impl BasicApp {
         self.tray
             .show("Status", Some(message), Some(flags), Some(&self.icon));
     }
+
+    pub fn spawn_pinger(&self, address: &str, delay_millis: u32) -> thread::JoinHandle<()> {
+        let sender = self.data.borrow().samples_sender.clone();
+        let dst = String::from(address)
+            .parse::<IpAddr>()
+            .expect("Could not parse IP Address");
+        let handle = thread::spawn(move || {
+            let pinger = Pinger::new().unwrap();
+            loop {
+                let mut buffer = Buffer::new();
+                let ping_response;
+                let timestamp = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .expect("Bad time value")
+                    .as_nanos();
+                match pinger.send(dst, &mut buffer) {
+                    Ok(rtt) => {
+                        ping_response = Some(rtt as u16);
+                    }
+                    Err(_err) => {
+                        ping_response = None;
+                    }
+                };
+                sender
+                    .send((dst, timestamp, ping_response))
+                    .expect("Should have sent");
+                thread::sleep_ms(delay_millis);
+            }
+        });
+        handle
+    }
 }
 
 fn main() -> std::io::Result<()> {
     nwg::init().expect("Failed to init Native Windows GUI");
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
-
     let app = BasicApp::build_ui(Default::default()).expect("Failed to build UI");
-    let sender = app.data.borrow().samples_sender.clone();
-    thread::spawn(move || {
-        let dst = String::from("8.8.8.8")
-            .parse::<IpAddr>()
-            .expect("Could not parse IP Address");
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Bad time value")
-            .as_nanos();
-        sender.send((dst, timestamp, Some(10))).expect("Should have sent");
-    });
+    app.spawn_pinger("1.1.1.2", 600);
+    app.spawn_pinger("8.8.8.8", 600);
+    app.spawn_pinger("208.67.222.222",600);
     nwg::dispatch_thread_events();
     Ok(())
 }
