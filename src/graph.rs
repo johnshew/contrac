@@ -62,6 +62,7 @@ impl GraphUi {
                 graph_bars.push(new_bar);
             }
         }
+        
         let mut data = self.data.borrow_mut();
         data.bar_count = graph_bars_len;
         data.min = min;
