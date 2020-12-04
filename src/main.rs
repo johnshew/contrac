@@ -117,7 +117,11 @@ pub struct BasicApp {
     #[nwg_events( OnTimerTick: [BasicApp::on_timer_tick] )]
     timer: nwg::Timer,
 
-    #[nwg_resource(source_file: Some("./resources/cog.ico"))]
+    #[nwg_resource]
+    embed: nwg::EmbedResource,
+
+    //#[nwg_resource(source_file: Some("./resources/cog.ico"))]
+    #[nwg_resource(source_embed: Some(&data.embed), source_embed_str: Some("MAINICON"))]
     icon: nwg::Icon,
 
     #[nwg_control(icon: Some(&data.icon), tip: Some("Connection Tracker"))]
@@ -170,6 +174,8 @@ pub struct BasicApp {
 
 impl BasicApp {
     fn on_window_init(&self) {
+        // let em = &self.embed;
+
         self.slider.set_range_min(0);
         self.slider.set_range_max(100);
         self.graph.init(30, 0, 20);
@@ -348,8 +354,8 @@ impl BasicApp {
             .expect("Could not parse IP Address");
         let handle = thread::spawn(move || {
             let pinger = Pinger::new().unwrap();
+            let mut buffer = Buffer::new();
             loop {
-                let mut buffer = Buffer::new();
                 let ping_response;
                 let timestamp = SystemTime::now()
                     .duration_since(UNIX_EPOCH)
@@ -374,7 +380,7 @@ impl BasicApp {
     }
 }
 
-fn main() -> std::io::Result<()> {
+fn main() {
     nwg::init().expect("Failed to init Native Windows GUI");
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
     let app = BasicApp::build_ui(Default::default()).expect("Failed to build UI");
@@ -382,5 +388,4 @@ fn main() -> std::io::Result<()> {
     app.spawn_pinger("8.8.8.8", 600);
     app.spawn_pinger("208.67.222.222", 600);
     nwg::dispatch_thread_events();
-    Ok(())
 }
