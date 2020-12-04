@@ -51,9 +51,11 @@ pub struct AppData {
     max: u16,
     samples: VecDeque<Sample>,
     last_full_update: DateTime<Local>,
-    last_sample_timeout: bool,
+    last_sample_display_timeout_notification: bool,
+    timeout_start: Option<DateTime<Local>>,
     samples_receiver: Receiver<Sample>,
     samples_sender: Sender<Sample>,
+    app_start: DateTime<Local>,
 }
 
 impl Default for AppData {
@@ -66,9 +68,11 @@ impl Default for AppData {
             max: 0,
             samples: VecDeque::new(),
             last_full_update: Local::now(),
-            last_sample_timeout: false,
+            last_sample_display_timeout_notification: false,
+            timeout_start: None,
             samples_receiver: r,
             samples_sender: s,
+            app_start: Local::now(),
         }
     }
 }
@@ -194,9 +198,10 @@ impl BasicApp {
         {
             let mut data = self.data.borrow_mut();
             data.record_observation(sample);
-            let (dst, _timestamp, ping_response) = sample;
+            let (dst, timestamp, ping_response) = sample;
             if let Some(rtt) = ping_response {
-                data.last_sample_timeout = false;
+                data.last_sample_display_timeout_notification = false;
+                data.timeout_start = None;
                 let message = format!(
                     "{}: {} ms ({}:{}) {:.1} avg",
                     dst,
@@ -211,11 +216,17 @@ impl BasicApp {
                     .set_selection_range_pos(data.min as usize..data.max as usize);
             } else {
                 self.message.set_text("Disconnected");
-                self.slider.set_pos(300);
-                if !data.last_sample_timeout {
+                let datetime = utils::timestamp_to_datetime(timestamp as u128);
+                if data.last_sample_display_timeout_notification == false
+                    && data.timeout_start.is_some()
+                    && datetime > (data.timeout_start.unwrap() + Duration::seconds(1))
+                {
                     self.display_notification("Disconnected");
+                    data.last_sample_display_timeout_notification = true;
                 }
-                data.last_sample_timeout = true;
+                if let None = data.timeout_start {
+                    data.timeout_start = Some(datetime);
+                }
             }
         }
     }
@@ -262,7 +273,11 @@ impl BasicApp {
             data.sort();
         }
         let data = self.data.borrow();
-        let mut file = File::create("log.txt").expect("file create failed");
+        let mut file = File::create(format!(
+            "samples-{}.log",
+            utils::_datetime_to_timestamp(&data.app_start)
+        ))
+        .expect("file create failed");
 
         for (address, time, rtt) in &data.samples {
             let date_time = utils::timestamp_to_datetime(*time);
@@ -282,7 +297,11 @@ impl BasicApp {
             Nominal,
         };
 
-        let mut file = File::create("timeouts.txt").expect("file create failed");
+        let mut file = File::create(format!(
+            "timeouts-{}.log",
+            utils::_datetime_to_timestamp(&data.app_start)
+        ))
+        .expect("file create failed");
         let mut timeout_status = TimeoutTracker::Nominal;
         // let samples = data.samples.sort_by()
 
