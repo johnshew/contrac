@@ -1,4 +1,4 @@
-// #![allow(dead_code)]
+#![windows_subsystem = "windows"]
 
 use chrono::{DateTime, Duration, Local};
 use std::cell::RefCell;
@@ -379,6 +379,7 @@ impl BasicApp {
         handle
     }
 }
+
 
 fn main() {
     nwg::init().expect("Failed to init Native Windows GUI");
