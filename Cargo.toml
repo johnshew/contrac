@@ -1,9 +1,16 @@
 [package]
 name = "contrac"
-version = "0.1.0"
+description = "ISP connection tracker"
+version = "0.3.1"
 authors = ["John Shewchuk <johnshew@users.noreply.github.com>"]
 edition = "2018"
-build = "build.rs"
+repository = "https://github.com/johnshew/contrac"
+documentation= "https://github.com/johnshew/contrac"
+build= "build.rs"
+
+[package.metadata.winres]
+LegalCopyright = "Copyright © 2020"
+FileDescription = "contrac resources"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -13,7 +20,7 @@ winapi="0.3"
 winping="0.10.1"
 num="0.3.1"
 native-windows-gui = "1.0.6"
-native-windows-derive = "1.0.2" # Optional. Only if the derive macro is used.
+native-windows-derive = "1.0.2" 
 
 [build-dependencies]
-winres = "0.1"
+embed-resource = "1.3"

@@ -1,0 +1,4 @@
+#define RT_MANIFEST 24
+1 RT_MANIFEST "embed_resources.exe.manifest"
+MAINICON ICON "resources/cog.ico"
+TEST ICON "resources/cog.ico"
