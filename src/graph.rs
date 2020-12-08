@@ -56,7 +56,7 @@ impl GraphUi {
                 let mut new_bar = Default::default();
                 nwg::ImageFrame::builder()
                     .parent(&self.frame)
-                    .background_color(Some([0, 255, 255]))
+                    .background_color(Some([127, 127, 127]))
                     .build(&mut new_bar)
                     .expect("Failed to build button");
                 graph_bars.push(new_bar);
