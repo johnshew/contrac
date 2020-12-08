@@ -17,17 +17,24 @@ extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
 use nwg::stretch::{
     geometry::{Rect, Size},
-    style::{AlignItems, Dimension as D, FlexDirection, JustifyContent},
+    style::{AlignContent, AlignItems, AlignSelf, Dimension as D, FlexDirection, JustifyContent},
 };
 use nwg::NativeUi;
 
-const PT_10: D = D::Points(10.0);
 const PT_0: D = D::Points(0.0);
+const PT_10: D = D::Points(10.0);
+const PT_20: D = D::Points(20.0);
 const PAD_10: Rect<D> = Rect {
     start: PT_10,
     end: PT_10,
     top: PT_10,
     bottom: PT_10,
+};
+const PAD_20: Rect<D> = Rect {
+    start: PT_20,
+    end: PT_20,
+    top: PT_20,
+    bottom: PT_20,
 };
 const PAD_10_TOP_BOTTON: Rect<D> = Rect {
     start: PT_0,
@@ -167,25 +174,25 @@ pub struct BasicApp {
     button_layout: nwg::FlexboxLayout,
 
     #[nwg_control(parent: button_frame, text: "Reset")]
-    #[nwg_layout_item(layout: button_layout,  size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
+    #[nwg_layout_item(layout: button_layout,  margin: PAD_10, size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
     #[nwg_events( OnButtonClick: [BasicApp::on_reset_click] )]
     reset_button: nwg::Button,
 
-    #[nwg_control(parent: button_frame, check_state: CheckBoxState::Checked, text: "Auto Save")]
-    #[nwg_layout_item(layout: button_layout, size: Size { width: D::Points(220.0), height: D::Points(40.0) },)]
-    auto_save: nwg::CheckBox,
-
-    #[nwg_control(parent: button_frame, text: "Save Reports")]
-    #[nwg_layout_item(layout: button_layout,  size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
+    #[nwg_control(parent: button_frame, text: "Save Logs")]
+    #[nwg_layout_item(layout: button_layout, margin: PAD_10, size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
     #[nwg_events( OnButtonClick: [BasicApp::on_save_report_menu_item_selected] )]
     save_report_button: nwg::Button,
+    
+    #[nwg_control(parent: button_frame, check_state: CheckBoxState::Checked, text: "Auto save")]
+    #[nwg_layout_item(layout: button_layout,   size: Size { width: D::Points(120.0), height: D::Points(40.0) },)]
+    auto_save: nwg::CheckBox,
 }
 
 impl BasicApp {
     fn on_window_init(&self) {
         self.slider.set_range_min(0);
         self.slider.set_range_max(100);
-        self.graph.init(30, 0, 20);
+        self.graph.init(40, 0, 50);
         self.graph.on_resize();
     }
 
@@ -215,12 +222,12 @@ impl BasicApp {
                 data.last_sample_display_timeout_notification = false;
                 data.timeout_start = None;
                 let message = format!(
-                    "{}: {} ms ({}:{}) {:.1} avg",
-                    dst,
+                    "{} ms ({}:{}) {:.1} avg to {}",
                     rtt,
                     data.min,
                     data.max,
-                    data.average()
+                    data.average(),
+                    dst,
                 );
                 self.message.set_text(&message);
                 self.slider.set_pos(rtt as usize);
