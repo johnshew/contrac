@@ -55,12 +55,15 @@ pub struct AppData {
     timeout_start: Option<DateTime<Local>>,
     samples_receiver: Receiver<Sample>,
     samples_sender: Sender<Sample>,
-    app_start: DateTime<Local>,
+    _app_start: DateTime<Local>,
+    log_identifier: String,
+    last_saved: Option<DateTime<Local>>,
 }
 
 impl Default for AppData {
     fn default() -> Self {
         let (s, r) = channel::<Sample>();
+        let now = Local::now();
         AppData {
             count: 0,
             total: 0,
@@ -72,7 +75,9 @@ impl Default for AppData {
             timeout_start: None,
             samples_receiver: r,
             samples_sender: s,
-            app_start: Local::now(),
+            _app_start: now,
+            log_identifier: format!("{}", now.format("%Y-%m-%d %H-%M-%S-%3f %z")),
+            last_saved: None,
         }
     }
 }
@@ -109,7 +114,7 @@ impl AppData {
 pub struct BasicApp {
     data: RefCell<AppData>,
 
-    #[nwg_control(size: (600, 400), position: (300, 300), title: "Connection Tracker", flags: "MAIN_WINDOW|VISIBLE")]
+    #[nwg_control(size: (610, 400), position: (300, 300), title: "Connection Tracker", flags: "MAIN_WINDOW|VISIBLE")]
     #[nwg_events( OnWindowClose: [BasicApp::on_window_close], OnInit: [BasicApp::on_window_init], OnWindowMinimize: [BasicApp::on_window_minimize] )]
     window: nwg::Window,
 
@@ -166,6 +171,10 @@ pub struct BasicApp {
     #[nwg_events( OnButtonClick: [BasicApp::on_reset_click] )]
     reset_button: nwg::Button,
 
+    #[nwg_control(parent: button_frame, check_state: CheckBoxState::Checked, text: "Auto Save")]
+    #[nwg_layout_item(layout: button_layout, size: Size { width: D::Points(220.0), height: D::Points(40.0) },)]
+    auto_save: nwg::CheckBox,
+
     #[nwg_control(parent: button_frame, text: "Save Reports")]
     #[nwg_layout_item(layout: button_layout,  size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
     #[nwg_events( OnButtonClick: [BasicApp::on_save_report_menu_item_selected] )]
@@ -174,8 +183,6 @@ pub struct BasicApp {
 
 impl BasicApp {
     fn on_window_init(&self) {
-        // let em = &self.embed;
-
         self.slider.set_range_min(0);
         self.slider.set_range_max(100);
         self.graph.init(30, 0, 20);
@@ -188,7 +195,6 @@ impl BasicApp {
         data.total = 0;
         data.min = u16::MAX;
         data.max = 0;
-        data.samples.clear();
     }
 
     fn on_window_close(&self) {
@@ -254,12 +260,31 @@ impl BasicApp {
         }
 
         let datetime = Local::now();
-        let mut data = self.data.borrow_mut();
-        if datetime > (data.last_full_update + Duration::milliseconds(250)) {
-            data.sort();
-            self.graph.set_values(&data.samples);
-            self.graph.on_resize();
-            data.last_full_update = datetime;
+        {
+            let mut data = self.data.borrow_mut();
+            if datetime > (data.last_full_update + Duration::milliseconds(250)) {
+                data.sort();
+                self.graph.set_values(&data.samples);
+                self.graph.on_resize();
+                data.last_full_update = datetime;
+            }
+        }
+
+        let auto_save;
+        {
+            let data = self.data.borrow();
+            if self.auto_save.check_state() == nwg::CheckBoxState::Checked
+                && data.last_saved.is_none()
+                || data.last_saved.unwrap() + Duration::minutes(10) < datetime
+            {
+                auto_save = true;
+            } else {
+                auto_save = false;
+            }
+        }
+
+        if auto_save {
+            self.write_log();
         }
     }
 
@@ -277,13 +302,12 @@ impl BasicApp {
         {
             let mut data = self.data.borrow_mut();
             data.sort();
+            data.last_saved = Some(Local::now());
         }
+
         let data = self.data.borrow();
-        let mut file = File::create(format!(
-            "samples-{}.log",
-            utils::_datetime_to_timestamp(&data.app_start)
-        ))
-        .expect("file create failed");
+        let mut file = File::create(format!("{} samples.log", &data.log_identifier))
+            .expect("file create failed");
 
         for (address, time, rtt) in &data.samples {
             let date_time = utils::timestamp_to_datetime(*time);
@@ -303,14 +327,9 @@ impl BasicApp {
             Nominal,
         };
 
-        let mut file = File::create(format!(
-            "timeouts-{}.log",
-            utils::_datetime_to_timestamp(&data.app_start)
-        ))
-        .expect("file create failed");
+        let mut file = File::create(format!("{} timeouts.log", &data.log_identifier))
+            .expect("file create failed");
         let mut timeout_status = TimeoutTracker::Nominal;
-        // let samples = data.samples.sort_by()
-
         for (_address, time, rtt) in &data.samples {
             if rtt.is_some() {
                 if let TimeoutTracker::Active { start } = timeout_status {
@@ -379,7 +398,6 @@ impl BasicApp {
         handle
     }
 }
-
 
 fn main() {
     nwg::init().expect("Failed to init Native Windows GUI");
