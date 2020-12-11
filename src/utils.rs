@@ -48,6 +48,7 @@ pub fn PostMessage(
     unsafe { PostMessageW(handle, Msg, wParam, lParam) }
 }
 
+#[allow(non_snake_case)]
 pub fn MoveToTop(control_handle: &nwg::ControlHandle) -> BOOL {
     let handle = check_hwnd(control_handle);
     unsafe {
@@ -58,7 +59,7 @@ pub fn MoveToTop(control_handle: &nwg::ControlHandle) -> BOOL {
             0,
             0,
             0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOOWNERZORDER,
+            SWP_NOMOVE | SWP_NOSIZE ,
         )
     }
 }

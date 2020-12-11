@@ -21,27 +21,16 @@ use nwg::stretch::{
 };
 use nwg::NativeUi;
 
-const PT_0: D = D::Points(0.0);
-const PT_10: D = D::Points(10.0);
-const 
-PAD_10: Rect<D> = Rect {
-    start: PT_10,
-    end: PT_10,
-    top: PT_10,
-    bottom: PT_10,
-};
-const PAD_10_TOP_BOTTON: Rect<D> = Rect {
-    start: PT_0,
-    end: PT_0,
-    top: PT_10,
-    bottom: PT_10,
-};
-
 mod graph;
 mod stats;
 mod utils;
 
 use crate::graph::*;
+
+const GRAPH_REFRESH : i64 = 250;
+const GRAPH_INTERVAL  : i32 = 1000 * 2; 
+const MIN_TIMEOUT_INTERVAL : i32 = 1000;
+
 
 pub type Sample = (IpAddr, u128, Option<u16>);
 
@@ -110,6 +99,23 @@ impl AppData {
             .sort_by(|(_aa, at, _ap), (_ba, bt, _bp)| at.cmp(bt));
     }
 }
+
+
+const PT_0: D = D::Points(0.0);
+const PT_10: D = D::Points(10.0);
+const 
+PAD_10: Rect<D> = Rect {
+    start: PT_10,
+    end: PT_10,
+    top: PT_10,
+    bottom: PT_10,
+};
+const PAD_10_TOP_BOTTON: Rect<D> = Rect {
+    start: PT_0,
+    end: PT_0,
+    top: PT_10,
+    bottom: PT_10,
+};
 
 #[derive(Default, NwgUi)]
 pub struct BasicApp {
@@ -183,7 +189,7 @@ pub struct BasicApp {
 }
 
 impl BasicApp {
-    fn on_window_init(&self) {
+    fn on_window_init(& self) {
         self.slider.set_range_min(0);
         self.slider.set_range_max(100);
         self.graph.init(40, 0, 50);
@@ -263,7 +269,7 @@ impl BasicApp {
         let datetime = Local::now();
         {
             let mut data = self.data.borrow_mut();
-            if datetime > (data.last_full_update + Duration::milliseconds(250)) {
+            if datetime > (data.last_full_update + Duration::milliseconds(GRAPH_REFRESH)) {
                 data.sort();
                 self.graph.set_values(&data.samples);
                 self.graph.on_resize();

@@ -56,7 +56,7 @@ pub struct GraphUi {
 }
 
 impl GraphUi {
-    pub fn init(&self, graph_bars_len: u16, min: u16, max: u16) {
+    pub fn init(& self, graph_bars_len: u16, min: u16, max: u16) {
         {
             let mut graph_bars = self.bars.borrow_mut();
             let len = graph_bars.len() as u16;
@@ -80,12 +80,14 @@ impl GraphUi {
                     .resize_with(graph_bars_len as usize, Default::default);
             }
         }
+
         self.min_select.set_text(&format!("{}", min));
         self.max_select.set_text(&format!("{}", max));
         self.min_select.set_visible(true);
         self.max_select.set_visible(true);
         utils::MoveToTop(&self.min_select.handle);
         utils::MoveToTop(&self.max_select.handle);
+       
     }
 
     pub fn on_min_max_click(&self) {
@@ -120,7 +122,7 @@ impl GraphUi {
         // if there is no data in that interval it can be invisible
 
         let now = Local::now();
-        let interval = Duration::seconds(10);
+        let interval = Duration::seconds(1);
         let mut end_of_interval = (now + interval)
             .duration_trunc(interval)
             .expect("time trucation should always work");
@@ -166,9 +168,6 @@ impl GraphUi {
         let (w, h) = self.frame.size();
         let (l, t) = self.frame.position();
 
-        self.max_select.set_position(0, 0);
-        let (_cw, ch) = self.min_select.size();
-        self.min_select.set_position(0, h as i32 - ch as i32);
 
         let data_len = { self.data.borrow().bars.len() };
 
@@ -219,5 +218,10 @@ impl GraphUi {
                 graph_bar.set_visible(false);
             }
         }
+        self.max_select.set_position(0, 0);
+        let (_cw, ch) = self.min_select.size();
+        self.min_select.set_position(0, h as i32 - ch as i32);
+        utils::MoveToTop(&self.min_select.handle);
+        utils::MoveToTop(&self.max_select.handle);
     }
 }
