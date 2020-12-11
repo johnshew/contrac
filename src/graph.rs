@@ -1,16 +1,16 @@
+
+use chrono::{Duration, DurationRound, Local};
 use std::cell::RefCell;
 use std::collections::VecDeque;
-use chrono::{Local, Duration, DurationRound};
 
 extern crate native_windows_derive as nwd;
-extern crate native_windows_gui as nwg; // Optional. Only if the derive macro is used.
+extern crate native_windows_gui as nwg;
 
-use nwd::{NwgPartial};
-// use nwg::NativeUi;
+use nwd::NwgPartial;
 
 use super::stats;
 use super::utils;
-use crate::{Sample};
+use crate::Sample;
 
 pub struct GraphData {
     bar_count: u16,
@@ -42,6 +42,14 @@ pub struct GraphUi {
     #[nwg_events( OnResize: [GraphUi::on_resize])]
     frame: nwg::Frame,
 
+    #[nwg_control(parent: frame, size: (50,25), text: "30", flags: "NUMBER")]
+    #[nwg_events( OnTextInput: [GraphUi::on_min_max_click])]
+    max_select: nwg::TextInput,
+
+    #[nwg_control(parent: frame, size: (50,25), text: "0", flags: "NUMBER")]
+    #[nwg_events( OnTextInput: [GraphUi::on_min_max_click])]
+    min_select: nwg::TextInput,
+
     // #[nwg_control]
     // tooltip: nwg::Tooltip,
     bars: RefCell<Vec<nwg::ImageFrame>>,
@@ -49,27 +57,59 @@ pub struct GraphUi {
 
 impl GraphUi {
     pub fn init(&self, graph_bars_len: u16, min: u16, max: u16) {
-        let mut graph_bars = self.bars.borrow_mut();
-        let len = graph_bars.len() as u16;
-        if len < graph_bars_len {
-            for _i in len..graph_bars_len {
-                let mut new_bar = Default::default();
-                nwg::ImageFrame::builder()
-                    .parent(&self.frame)
-                    .background_color(Some([127, 127, 127]))
-                    .build(&mut new_bar)
-                    .expect("Failed to build button");
-                graph_bars.push(new_bar);
+        {
+            let mut graph_bars = self.bars.borrow_mut();
+            let len = graph_bars.len() as u16;
+            if len < graph_bars_len {
+                for _i in len..graph_bars_len {
+                    let mut new_bar = Default::default();
+                    nwg::ImageFrame::builder()
+                        .parent(&self.frame)
+                        .background_color(Some([127, 127, 127]))
+                        .build(&mut new_bar)
+                        .expect("Failed to build button");
+                    graph_bars.push(new_bar);
+                }
+            }
+            let mut data = self.data.borrow_mut();
+            data.bar_count = graph_bars_len;
+            data.min = min;
+            data.max = max;
+            if data.bar_count != data.bars.len() as u16 {
+                data.bars
+                    .resize_with(graph_bars_len as usize, Default::default);
             }
         }
+        self.min_select.set_text(&format!("{}", min));
+        self.max_select.set_text(&format!("{}", max));
+        self.min_select.set_visible(true);
+        self.max_select.set_visible(true);
+        utils::MoveToTop(&self.min_select.handle);
+        utils::MoveToTop(&self.max_select.handle);
+    }
+
+    pub fn on_min_max_click(&self) {
+        let mut max = if let Ok(v) = self.max_select.text().parse::<u16>() {
+            v
+        } else {
+            300
+        };
+        let mut min = if let Ok(v) = self.min_select.text().parse::<u16>() {
+            v
+        } else {
+            0
+        };
+        if max < min {
+            max = min + 10;
+        }
+        if min > max {
+            min = max - 10;
+        }
         
+        {
         let mut data = self.data.borrow_mut();
-        data.bar_count = graph_bars_len;
         data.min = min;
         data.max = max;
-        if data.bar_count != data.bars.len() as u16 {
-            data.bars
-                .resize_with(graph_bars_len as usize, Default::default);
         }
     }
 
@@ -107,11 +147,11 @@ impl GraphUi {
                 }
                 if bar_is_complete {
                     let mut data = self.data.borrow_mut();
-                    data.bars[i] = stats; 
+                    data.bars[i] = stats;
                     bar_is_complete = false;
                     break;
                 }
-                let (_address, _timestamp, ping) = samples[probe_count_remaining - 1]; 
+                let (_address, _timestamp, ping) = samples[probe_count_remaining - 1];
                 probe_count_remaining -= 1;
                 stats.update(ping);
             }
@@ -126,10 +166,12 @@ impl GraphUi {
         let (w, h) = self.frame.size();
         let (l, t) = self.frame.position();
 
-        let data_len;
-        {
-            data_len = self.data.borrow().bars.len();
-        }
+        self.max_select.set_position(0, 0);
+        let (_cw, ch) = self.min_select.size();
+        self.min_select.set_position(0, h as i32 - ch as i32);
+
+        let data_len = { self.data.borrow().bars.len() };
+
         for i in 0..data_len {
             let data = self.data.borrow();
             let bar = &data.bars[i];

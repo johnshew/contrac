@@ -17,24 +17,18 @@ extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
 use nwg::stretch::{
     geometry::{Rect, Size},
-    style::{AlignContent, AlignItems, AlignSelf, Dimension as D, FlexDirection, JustifyContent},
+    style::{ AlignItems,  Dimension as D, FlexDirection, JustifyContent},
 };
 use nwg::NativeUi;
 
 const PT_0: D = D::Points(0.0);
 const PT_10: D = D::Points(10.0);
-const PT_20: D = D::Points(20.0);
-const PAD_10: Rect<D> = Rect {
+const 
+PAD_10: Rect<D> = Rect {
     start: PT_10,
     end: PT_10,
     top: PT_10,
     bottom: PT_10,
-};
-const PAD_20: Rect<D> = Rect {
-    start: PT_20,
-    end: PT_20,
-    top: PT_20,
-    bottom: PT_20,
 };
 const PAD_10_TOP_BOTTON: Rect<D> = Rect {
     start: PT_0,
