@@ -70,7 +70,7 @@ impl GraphUi {
                         .background_color(Some([127, 127, 127]))
                         .build(&mut new_bar)
                         .expect("Failed to build button");
-                    let handle = new_bar.handle;
+                    // let handle = new_bar.handle;
                     // self.tooltips.register(handle, "");
                     graph_bars.push(new_bar);
                 }

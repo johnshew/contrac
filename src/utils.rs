@@ -49,7 +49,7 @@ pub fn PostMessage(
 }
 
 #[allow(non_snake_case)]
-pub fn MoveToTop(control_handle: &nwg::ControlHandle) -> BOOL {
+pub fn _MoveToTop(control_handle: &nwg::ControlHandle) -> BOOL {
     let handle = check_hwnd(control_handle);
     unsafe {
         SetWindowPos(

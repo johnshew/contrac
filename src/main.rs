@@ -1,5 +1,4 @@
 #![windows_subsystem = "windows"]
-#![allow(dead_code)]
 
 use chrono::{DateTime, Duration, Local};
 use std::cell::RefCell;
@@ -101,15 +100,7 @@ impl AppData {
     }
 }
 
-// const PT_0: D = D::Points(0.0);
-const PT_10: D = D::Points(10.0);
-const _PAD_10: Rect<D> = Rect {
-    start: PT_10,
-    end: PT_10,
-    top: PT_10,
-    bottom: PT_10,
-};
-const PAD_5: Rect<D> = Rect {
+const _PAD_5: Rect<D> = Rect {
     start: D::Points(10.0),
     end: D::Points(10.0),
     top: D::Points(10.0),
@@ -121,23 +112,11 @@ const PAD_2: Rect<D> = Rect {
     top: D::Points(2.0),
     bottom: D::Points(2.0),
 };
-const PAD_NONE: Rect<D> = Rect {
-    start: D::Points(0.0),
-    end: D::Points(0.0),
-    top: D::Points(0.0),
-    bottom: D::Points(0.0),
-};
 const PAD_SHRINK_1: Rect<D> = Rect {
     start: D::Points(-1.0),
     end: D::Points(-1.0),
     top: D::Points(-1.0),
     bottom: D::Points(-1.0),
-};
-const PAD_SHRINK_2: Rect<D> = Rect {
-    start: D::Points(-2.0),
-    end: D::Points(-2.0),
-    top: D::Points(-2.0),
-    bottom: D::Points(-2.0),
 };
 
 
@@ -156,7 +135,6 @@ pub struct BasicApp {
     #[nwg_resource]
     embed: nwg::EmbedResource,
 
-    //#[nwg_resource(source_file: Some("./resources/cog.ico"))]
     #[nwg_resource(source_embed: Some(&data.embed), source_embed_str: Some("MAINICON"))]
     icon: nwg::Icon,
 
@@ -205,10 +183,6 @@ pub struct BasicApp {
     #[nwg_layout(parent: status_frame, auto_spacing: None, flex_direction: FlexDirection::Row, align_items: AlignItems::Center, justify_content: JustifyContent::FlexEnd)]
     status_layout: nwg::FlexboxLayout,
 
-    // #[nwg_control(parent: status_frame)]
-    // #[nwg_layout_item(layout: status_layout, margin: PAD_5, min_size: Size { width: D::Points(150.0), height: D::Points(40.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(40.0) },)]
-    // message: nwg::Label,
-
     #[nwg_control(parent: status_frame, text: "Reset Stats")]
     #[nwg_layout_item(layout: status_layout,  margin: PAD_2, min_size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
     #[nwg_events( OnButtonClick: [BasicApp::on_reset_click] )]
@@ -221,15 +195,13 @@ pub struct BasicApp {
 
     #[nwg_control(text: "", flags:"NONE")]
     #[nwg_layout_item(layout: main_layout, min_size: Size { width: D::Percent(0.96), height: D::Points(25.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(25.0) },)]
-    _space2: nwg::Label,
+    statusbar_spacer: nwg::Label,
 
     #[nwg_control(parent: window)]
-    //#[nwg_layout_item(layout: status_layout, margin: PAD_5, min_size: Size { width: D::Points(150.0), height: D::Points(40.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(40.0) },)]
     message: nwg::StatusBar,
 
-    
 
-    // OLD
+    // Tracbar for displaying - not currently used.
     #[nwg_control( flags:"HORIZONTAL|RANGE")] // not visible 
     // #[nwg_layout_item(layout: main_layout, min_size: Size { width: D::Percent(1.0), height: D::Points(40.0)}, max_size: Size { width: D::Percent(1.0), height: D::Points(40.0)})]
     slider: nwg::TrackBar,
