@@ -167,13 +167,13 @@ impl GraphUi {
 
     pub fn on_resize(&self) {
         self.frame.set_visible(true);
-        self.frame.set_position(0,25);
+        self.frame.set_position(0,25+3);
 
         let (ow,oh) = self.outer_frame.size();
-        self.frame.set_size(ow, oh-25-25-2);
+        self.frame.set_size(ow+1, oh-(3+25+1+25+1+1));
 
         let (w, h) = self.frame.size();
-        let (l, t) = self.frame.position();
+        let (_l, _t) = self.frame.position();
 
 
         let data_len = { self.data.borrow().bars.len() };
@@ -210,9 +210,9 @@ impl GraphUi {
                 let top_gap_ratio = (data.max - high) as f32 / (data.max - data.min) as f32;
                 let top_gap = (h as f32 * top_gap_ratio) as i32;
                 {
-                    graph_bar.set_size(w / data_len as u32, bar_h);
+                    graph_bar.set_size(1+ (w / data_len as u32), bar_h);
                     graph_bar
-                        .set_position((w / data_len as u32 * i as u32) as i32 + l, top_gap + t);
+                        .set_position(w as i32 * (i as i32) / data_len as i32 , top_gap );
                     if bar.timeout {
                         // graph_bar set background to red
                     }
@@ -227,11 +227,11 @@ impl GraphUi {
         }
         let (_, ch) = self.max_select.size();        
         self.max_select.set_position(0, 0);
-        self.max_select.set_size(ow, ch);
+        self.max_select.set_size(ow+1, ch);
 
         let (_, ch) = self.min_select.size();
         self.min_select.set_position(0, (oh - ch) as i32);
-        self.min_select.set_size(ow, ch);
+        self.min_select.set_size(ow+1, ch);
 
         utils::MoveToTop(&self.min_select.handle);
         utils::MoveToTop(&self.max_select.handle);
