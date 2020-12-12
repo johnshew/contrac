@@ -34,19 +34,22 @@ impl Default for GraphData {
 pub struct GraphUi {
     data: RefCell<GraphData>,
 
-    #[nwg_layout( spacing: 1)]
+    #[nwg_layout( margin: [0,0,0,0], spacing: 0)]
     grid: nwg::GridLayout,
 
-    #[nwg_control(flags: "NONE")]
+    #[nwg_control(flags: "VISIBLE")]
     #[nwg_layout_item(layout: grid, row: 0, col: 0 )]
     #[nwg_events( OnResize: [GraphUi::on_resize])]
+    outer_frame: nwg::Frame,
+
+    #[nwg_control(parent: outer_frame, flags: "VISIBLE|BORDER")]
     frame: nwg::Frame,
 
-    #[nwg_control(parent: frame, size: (50,25), text: "30", flags: "NUMBER")]
+    #[nwg_control(parent: outer_frame, size: (50,25), text: "30", limit:3,  flags: "NUMBER")]
     #[nwg_events( OnTextInput: [GraphUi::on_min_max_click])]
     max_select: nwg::TextInput,
 
-    #[nwg_control(parent: frame, size: (50,25), text: "0", flags: "NUMBER")]
+    #[nwg_control(parent: outer_frame, size: (50,25), text: "0", limit:3, flags: "NUMBER")]
     #[nwg_events( OnTextInput: [GraphUi::on_min_max_click])]
     min_select: nwg::TextInput,
 
@@ -164,6 +167,10 @@ impl GraphUi {
 
     pub fn on_resize(&self) {
         self.frame.set_visible(true);
+        self.frame.set_position(0,25);
+
+        let (ow,oh) = self.outer_frame.size();
+        self.frame.set_size(ow, oh-25-25-2);
 
         let (w, h) = self.frame.size();
         let (l, t) = self.frame.position();
@@ -218,9 +225,14 @@ impl GraphUi {
                 graph_bar.set_visible(false);
             }
         }
+        let (_, ch) = self.max_select.size();        
         self.max_select.set_position(0, 0);
-        let (_cw, ch) = self.min_select.size();
-        self.min_select.set_position(0, h as i32 - ch as i32);
+        self.max_select.set_size(ow, ch);
+
+        let (_, ch) = self.min_select.size();
+        self.min_select.set_position(0, (oh - ch) as i32);
+        self.min_select.set_size(ow, ch);
+
         utils::MoveToTop(&self.min_select.handle);
         utils::MoveToTop(&self.max_select.handle);
     }

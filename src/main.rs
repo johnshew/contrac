@@ -108,6 +108,13 @@ const PAD_10: Rect<D> = Rect {
     top: PT_10,
     bottom: PT_10,
 };
+const PAD_5: Rect<D> = Rect {
+    start: D::Points(10.0),
+    end: D::Points(10.0),
+    top: D::Points(10.0),
+    bottom: D::Points(10.0),
+};
+
 // const PAD_10_TOP_BOTTON: Rect<D> = Rect {
 //     start: PT_0,
 //     end: PT_0,
@@ -146,22 +153,22 @@ pub struct BasicApp {
     tray_item1: nwg::MenuItem,
 
     // Main UX
-    #[nwg_layout(parent: window, padding: PAD_10, auto_spacing: None, flex_direction: FlexDirection::Column, justify_content: JustifyContent::Center)]
+    #[nwg_layout(parent: window, /* padding: PAD_10, */ auto_spacing: None, flex_direction: FlexDirection::Column, justify_content: JustifyContent::Center)]
     main_layout: nwg::FlexboxLayout,
 
-    #[nwg_control] // maybe? ( flags:"BORDER")]
-    #[nwg_layout_item(layout: main_layout,  min_size: Size { width: D::Percent(1.0), height: D::Points(100.0) }, size: Size { width: D::Percent(1.0), height: D::Points(1000.0)})]
+    #[nwg_control(flags: "VISIBLE")] // maybe? ( flags:"BORDER")]
+    #[nwg_layout_item(layout: main_layout, min_size: Size { width: D::Percent(1.0), height: D::Points(100.0) }, size: Size { width: D::Percent(1.0), height: D::Points(1000.0)})]
     graph_frame: nwg::Frame,
 
     #[nwg_partial(parent: graph_frame)]
     graph: GraphUi,
 
-    #[nwg_control( flags:"VISIBLE|HORIZONTAL|RANGE")]
-    #[nwg_layout_item(layout: main_layout, min_size: Size { width: D::Percent(1.0), height: D::Points(40.0)}, max_size: Size { width: D::Percent(1.0), height: D::Points(40.0)})]
-    slider: nwg::TrackBar,
+    #[nwg_control(text: "", flags:"VISIBLE|VSCROLL")]
+    #[nwg_layout_item(layout: main_layout, margin: PAD_5, min_size: Size { width: D::Percent(0.96), height: D::Points(100.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(100.0) },)]
+    log: nwg::TextBox,
 
     #[nwg_control]
-    #[nwg_layout_item(layout: main_layout,  min_size: Size { width: D::Percent(1.0), height: D::Points(40.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(40.0) },)]
+    #[nwg_layout_item(layout: main_layout, margin: PAD_5, min_size: Size { width: D::Percent(1.0), height: D::Points(40.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(40.0) },)]
     message: nwg::Label,
 
     #[nwg_control(text: "Reset")]
@@ -169,9 +176,9 @@ pub struct BasicApp {
     #[nwg_events( OnButtonClick: [BasicApp::on_reset_click] )]
     reset_button: nwg::Button,
 
-    #[nwg_control(text: "", flags:"VISIBLE|VSCROLL")]
-    #[nwg_layout_item(layout: main_layout,   margin: PAD_10,  min_size: Size { width: D::Percent(1.0), height: D::Points(100.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(100.0) },)]
-    log: nwg::TextBox,
+    #[nwg_control( flags:"HORIZONTAL|RANGE")] // no visible
+    // #[nwg_layout_item(layout: main_layout, min_size: Size { width: D::Percent(1.0), height: D::Points(40.0)}, max_size: Size { width: D::Percent(1.0), height: D::Points(40.0)})]
+    slider: nwg::TrackBar,
     /*
     #[nwg_control(parent: window, flags: "VISIBLE")]
     #[nwg_layout_item(layout: main_layout, min_size: Size { width: D::Percent(1.0), height: D::Points(60.0)}, max_size: Size { width: D::Percent(1.0), height: D::Points(60.0)})]
