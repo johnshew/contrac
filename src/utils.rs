@@ -19,7 +19,7 @@ pub fn _datetime_to_timestamp<T: TimeZone>(datetime: &DateTime<T>) -> u128 {
     (datetime.timestamp() * 1_000_000_000 + datetime.timestamp_nanos()) as u128
 }
 
-fn check_hwnd(handle: &nwg::ControlHandle) -> HWND {
+pub fn check_hwnd(handle: &nwg::ControlHandle) -> HWND {
     use winapi::um::winuser::IsWindow;
 
     if handle.blank() {
