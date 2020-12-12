@@ -3,7 +3,7 @@ use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Utc};
 use winapi::shared::minwindef::{BOOL, LPARAM, UINT, WPARAM};
 use winapi::shared::windef::HWND;
 use winapi::um::winuser::{
-    PostMessageW, SetWindowPos, HWND_TOP, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE,
+    PostMessageW, SetWindowPos, HWND_TOP, SWP_NOMOVE, /* SWP_NOOWNERZORDER, */ SWP_NOSIZE,
 };
 
 pub fn timestamp_to_datetime(timestamp_in_nanoseconds: u128) -> DateTime<Local> {

@@ -17,7 +17,7 @@ extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
 use nwg::stretch::{
     geometry::{Rect, Size},
-    style::{ AlignItems,  Dimension as D, FlexDirection, JustifyContent},
+    style::{Dimension as D, /* AlignItems, */ FlexDirection, JustifyContent},
 };
 use nwg::NativeUi;
 
@@ -27,10 +27,10 @@ mod utils;
 
 use crate::graph::*;
 
-const GRAPH_REFRESH : i64 = 250;
-const GRAPH_INTERVAL  : i32 = 1000 * 2; 
-const MIN_TIMEOUT_INTERVAL : i32 = 1000;
-
+const GRAPH_REFRESH_MILLIS: i64 = 250;
+// const GRAPH_INTERVAL: i64 = 1000 * 2;
+const MIN_TIMEOUT_INTERVAL_MILLIS: i64 = 1000;
+const AUTO_SAVE_MINS: i64 = 5;
 
 pub type Sample = (IpAddr, u128, Option<u16>);
 
@@ -100,22 +100,20 @@ impl AppData {
     }
 }
 
-
-const PT_0: D = D::Points(0.0);
+// const PT_0: D = D::Points(0.0);
 const PT_10: D = D::Points(10.0);
-const 
-PAD_10: Rect<D> = Rect {
+const PAD_10: Rect<D> = Rect {
     start: PT_10,
     end: PT_10,
     top: PT_10,
     bottom: PT_10,
 };
-const PAD_10_TOP_BOTTON: Rect<D> = Rect {
-    start: PT_0,
-    end: PT_0,
-    top: PT_10,
-    bottom: PT_10,
-};
+// const PAD_10_TOP_BOTTON: Rect<D> = Rect {
+//     start: PT_0,
+//     end: PT_0,
+//     top: PT_10,
+//     bottom: PT_10,
+// };
 
 #[derive(Default, NwgUi)]
 pub struct BasicApp {
@@ -166,6 +164,15 @@ pub struct BasicApp {
     #[nwg_layout_item(layout: main_layout,  min_size: Size { width: D::Percent(1.0), height: D::Points(40.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(40.0) },)]
     message: nwg::Label,
 
+    #[nwg_control(text: "Reset")]
+    #[nwg_layout_item(layout: main_layout,  margin: PAD_10, min_size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
+    #[nwg_events( OnButtonClick: [BasicApp::on_reset_click] )]
+    reset_button: nwg::Button,
+
+    #[nwg_control(text: "", flags:"VISIBLE|VSCROLL")]
+    #[nwg_layout_item(layout: main_layout,   margin: PAD_10,  min_size: Size { width: D::Percent(1.0), height: D::Points(100.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(100.0) },)]
+    log: nwg::TextBox,
+    /*
     #[nwg_control(parent: window, flags: "VISIBLE")]
     #[nwg_layout_item(layout: main_layout, min_size: Size { width: D::Percent(1.0), height: D::Points(60.0)}, max_size: Size { width: D::Percent(1.0), height: D::Points(60.0)})]
     button_frame: nwg::Frame,
@@ -173,27 +180,27 @@ pub struct BasicApp {
     #[nwg_layout(parent: button_frame, padding: PAD_10_TOP_BOTTON,  auto_spacing: None, flex_direction: FlexDirection::Row, align_items: AlignItems::Center, justify_content: JustifyContent::FlexEnd)]
     button_layout: nwg::FlexboxLayout,
 
-    #[nwg_control(parent: button_frame, text: "Reset")]
-    #[nwg_layout_item(layout: button_layout,  margin: PAD_10, size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
-    #[nwg_events( OnButtonClick: [BasicApp::on_reset_click] )]
-    reset_button: nwg::Button,
-
     #[nwg_control(parent: button_frame, text: "Save Logs")]
     #[nwg_layout_item(layout: button_layout, margin: PAD_10, size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
     #[nwg_events( OnButtonClick: [BasicApp::on_save_report_menu_item_selected] )]
     save_report_button: nwg::Button,
-    
+
     #[nwg_control(parent: button_frame, check_state: CheckBoxState::Checked, text: "Auto save")]
     #[nwg_layout_item(layout: button_layout,   size: Size { width: D::Points(120.0), height: D::Points(40.0) },)]
     auto_save: nwg::CheckBox,
+    */
 }
 
 impl BasicApp {
-    fn on_window_init(& self) {
+    fn on_window_init(&self) {
         self.slider.set_range_min(0);
         self.slider.set_range_max(100);
         self.graph.init(40, 0, 50);
         self.graph.on_resize();
+        self.log.set_text(&format!(
+            "Log started {}",
+            self.data.borrow()._app_start.format("%F at %r")
+        ))
     }
 
     fn on_reset_click(&self) {
@@ -217,17 +224,28 @@ impl BasicApp {
         {
             let mut data = self.data.borrow_mut();
             data.record_observation(sample);
-            let (dst, timestamp, ping_response) = sample;
+            let (_dst, timestamp, ping_response) = sample;
             if let Some(rtt) = ping_response {
+                if data.last_sample_display_timeout_notification {
+                    let mut text = self.log.text();
+                    text.push_str(&format!(
+                        "\r\nDisconnected at {} for {} seconds",
+                        data.timeout_start.unwrap().format("%r"),
+                        (utils::timestamp_to_datetime(timestamp as u128)
+                            - data.timeout_start.unwrap())
+                        .num_seconds()
+                    ));
+                    self.log.set_text(&text);
+                }
                 data.last_sample_display_timeout_notification = false;
                 data.timeout_start = None;
                 let message = format!(
-                    "{} ms ({}:{}) {:.1} avg to {}",
+                    "{} ms ({}:{}) {:.1}",
                     rtt,
                     data.min,
                     data.max,
                     data.average(),
-                    dst,
+                    // dst,
                 );
                 self.message.set_text(&message);
                 self.slider.set_pos(rtt as usize);
@@ -238,7 +256,9 @@ impl BasicApp {
                 let datetime = utils::timestamp_to_datetime(timestamp as u128);
                 if data.last_sample_display_timeout_notification == false
                     && data.timeout_start.is_some()
-                    && datetime > (data.timeout_start.unwrap() + Duration::seconds(1))
+                    && datetime
+                        > (data.timeout_start.unwrap()
+                            + Duration::milliseconds(MIN_TIMEOUT_INTERVAL_MILLIS))
                 {
                     self.display_notification("Disconnected");
                     data.last_sample_display_timeout_notification = true;
@@ -269,7 +289,7 @@ impl BasicApp {
         let datetime = Local::now();
         {
             let mut data = self.data.borrow_mut();
-            if datetime > (data.last_full_update + Duration::milliseconds(GRAPH_REFRESH)) {
+            if datetime > (data.last_full_update + Duration::milliseconds(GRAPH_REFRESH_MILLIS)) {
                 data.sort();
                 self.graph.set_values(&data.samples);
                 self.graph.on_resize();
@@ -280,9 +300,9 @@ impl BasicApp {
         let auto_save;
         {
             let data = self.data.borrow();
-            if self.auto_save.check_state() == nwg::CheckBoxState::Checked
+            if true // self.auto_save.check_state() == nwg::CheckBoxState::Checked
                 && data.last_saved.is_none()
-                || data.last_saved.unwrap() + Duration::minutes(10) < datetime
+                || data.last_saved.unwrap() + Duration::minutes(AUTO_SAVE_MINS) < datetime
             {
                 auto_save = true;
             } else {
