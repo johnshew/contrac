@@ -1,16 +1,15 @@
+use chrono::{Duration, DurationRound, Local};
 use std::cell::RefCell;
 use std::collections::VecDeque;
-use chrono::{Local, Duration, DurationRound};
 
 extern crate native_windows_derive as nwd;
-extern crate native_windows_gui as nwg; // Optional. Only if the derive macro is used.
+extern crate native_windows_gui as nwg;
 
-use nwd::{NwgPartial};
-// use nwg::NativeUi;
+use nwd::NwgPartial;
 
 use super::stats;
 use super::utils;
-use crate::{Sample};
+use crate::Sample;
 
 pub struct GraphData {
     bar_count: u16,
@@ -34,42 +33,85 @@ impl Default for GraphData {
 pub struct GraphUi {
     data: RefCell<GraphData>,
 
-    #[nwg_layout( spacing: 1)]
+    #[nwg_layout( margin: [0,0,0,0], spacing: 0)]
     grid: nwg::GridLayout,
 
-    #[nwg_control(flags: "NONE")]
+    #[nwg_control(flags: "VISIBLE")]
     #[nwg_layout_item(layout: grid, row: 0, col: 0 )]
     #[nwg_events( OnResize: [GraphUi::on_resize])]
+    outer_frame: nwg::Frame,
+
+    #[nwg_control(parent: outer_frame, flags: "VISIBLE|BORDER")]
     frame: nwg::Frame,
 
-    // #[nwg_control]
-    // tooltip: nwg::Tooltip,
+    #[nwg_control(parent: outer_frame, size: (50,25), text: "30", limit:3,  flags: "NUMBER")]
+    #[nwg_events( OnTextInput: [GraphUi::on_min_max_click])]
+    max_select: nwg::TextInput,
+
+    #[nwg_control(parent: outer_frame, size: (50,25), text: "0", limit:3, flags: "NUMBER")]
+    #[nwg_events( OnTextInput: [GraphUi::on_min_max_click])]
+    min_select: nwg::TextInput,
+
     bars: RefCell<Vec<nwg::ImageFrame>>,
+
+    // tooltips: nwg::Tooltip,
 }
 
 impl GraphUi {
     pub fn init(&self, graph_bars_len: u16, min: u16, max: u16) {
-        let mut graph_bars = self.bars.borrow_mut();
-        let len = graph_bars.len() as u16;
-        if len < graph_bars_len {
-            for _i in len..graph_bars_len {
-                let mut new_bar = Default::default();
-                nwg::ImageFrame::builder()
-                    .parent(&self.frame)
-                    .background_color(Some([127, 127, 127]))
-                    .build(&mut new_bar)
-                    .expect("Failed to build button");
-                graph_bars.push(new_bar);
+        {
+            let mut graph_bars = self.bars.borrow_mut();
+            let len = graph_bars.len() as u16;
+            if len < graph_bars_len {
+                for _i in len..graph_bars_len {
+                    let mut new_bar = Default::default();
+                    nwg::ImageFrame::builder()
+                        .parent(&self.frame)
+                        .background_color(Some([127, 127, 127]))
+                        .build(&mut new_bar)
+                        .expect("Failed to build button");
+                    // let handle = new_bar.handle;
+                    // self.tooltips.register(handle, "");
+                    graph_bars.push(new_bar);
+                }
+            }
+            let mut data = self.data.borrow_mut();
+            data.bar_count = graph_bars_len;
+            data.min = min;
+            data.max = max;
+            if data.bar_count != data.bars.len() as u16 {
+                data.bars
+                    .resize_with(graph_bars_len as usize, Default::default);
             }
         }
-        
-        let mut data = self.data.borrow_mut();
-        data.bar_count = graph_bars_len;
-        data.min = min;
-        data.max = max;
-        if data.bar_count != data.bars.len() as u16 {
-            data.bars
-                .resize_with(graph_bars_len as usize, Default::default);
+
+        self.min_select.set_text(&format!("{}", min));
+        self.max_select.set_text(&format!("{}", max));
+        self.min_select.set_visible(true);
+        self.max_select.set_visible(true);
+    }
+
+    pub fn on_min_max_click(&self) {
+        let mut max = if let Ok(v) = self.max_select.text().parse::<u16>() {
+            v
+        } else {
+            300
+        };
+        let mut min = if let Ok(v) = self.min_select.text().parse::<u16>() {
+            v
+        } else {
+            0
+        };
+        if max < min {
+            max = min + 10;
+        }
+        if min > max {
+            min = max - 10;
+        }
+        {
+            let mut data = self.data.borrow_mut();
+            data.min = min;
+            data.max = max;
         }
     }
 
@@ -80,7 +122,7 @@ impl GraphUi {
         // if there is no data in that interval it can be invisible
 
         let now = Local::now();
-        let interval = Duration::seconds(10);
+        let interval = Duration::seconds(1);
         let mut end_of_interval = (now + interval)
             .duration_trunc(interval)
             .expect("time trucation should always work");
@@ -107,11 +149,11 @@ impl GraphUi {
                 }
                 if bar_is_complete {
                     let mut data = self.data.borrow_mut();
-                    data.bars[i] = stats; 
+                    data.bars[i] = stats;
                     bar_is_complete = false;
                     break;
                 }
-                let (_address, _timestamp, ping) = samples[probe_count_remaining - 1]; 
+                let (_address, _timestamp, ping) = samples[probe_count_remaining - 1];
                 probe_count_remaining -= 1;
                 stats.update(ping);
             }
@@ -122,14 +164,16 @@ impl GraphUi {
 
     pub fn on_resize(&self) {
         self.frame.set_visible(true);
+        self.frame.set_position(0, 25 + 3);
+
+        let (ow, oh) = self.outer_frame.size();
+        self.frame.set_size(ow + 1, oh - (3 + 25 + 1 + 25 + 1 + 1));
 
         let (w, h) = self.frame.size();
-        let (l, t) = self.frame.position();
+        let (_l, _t) = self.frame.position();
 
-        let data_len;
-        {
-            data_len = self.data.borrow().bars.len();
-        }
+        let data_len = { self.data.borrow().bars.len() };
+
         for i in 0..data_len {
             let data = self.data.borrow();
             let bar = &data.bars[i];
@@ -162,20 +206,25 @@ impl GraphUi {
                 let top_gap_ratio = (data.max - high) as f32 / (data.max - data.min) as f32;
                 let top_gap = (h as f32 * top_gap_ratio) as i32;
                 {
-                    graph_bar.set_size(w / data_len as u32, bar_h);
-                    graph_bar
-                        .set_position((w / data_len as u32 * i as u32) as i32 + l, top_gap + t);
+                    graph_bar.set_size(1 + (w / data_len as u32), bar_h);
+                    graph_bar.set_position(w as i32 * (i as i32) / data_len as i32, top_gap);
                     if bar.timeout {
                         // graph_bar set background to red
                     }
                     graph_bar.set_visible(true);
-                    // let _tip = format!("{} ({},{})", pos, low, high);
-                    // let handle = nwg::ControlHandle::from(bar);
-                    // self.tooltip.set_text(&handle, &tip);
+                    // let tip = format!("{} ({},{})", _pos, low, high);
+                    // self.tooltips.set_text(graph_bar, &tip);
                 }
             } else {
                 graph_bar.set_visible(false);
             }
         }
+        let (_, ch) = self.max_select.size();
+        self.max_select.set_position(0, 0);
+        self.max_select.set_size(ow + 1, ch);
+
+        let (_, ch) = self.min_select.size();
+        self.min_select.set_position(0, (oh - ch) as i32);
+        self.min_select.set_size(ow + 1, ch);
     }
 }

@@ -17,37 +17,20 @@ extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
 use nwg::stretch::{
     geometry::{Rect, Size},
-    style::{AlignContent, AlignItems, AlignSelf, Dimension as D, FlexDirection, JustifyContent},
+    style::{Dimension as D,  AlignItems, FlexDirection, JustifyContent},
 };
 use nwg::NativeUi;
-
-const PT_0: D = D::Points(0.0);
-const PT_10: D = D::Points(10.0);
-const PT_20: D = D::Points(20.0);
-const PAD_10: Rect<D> = Rect {
-    start: PT_10,
-    end: PT_10,
-    top: PT_10,
-    bottom: PT_10,
-};
-const PAD_20: Rect<D> = Rect {
-    start: PT_20,
-    end: PT_20,
-    top: PT_20,
-    bottom: PT_20,
-};
-const PAD_10_TOP_BOTTON: Rect<D> = Rect {
-    start: PT_0,
-    end: PT_0,
-    top: PT_10,
-    bottom: PT_10,
-};
 
 mod graph;
 mod stats;
 mod utils;
 
 use crate::graph::*;
+
+const GRAPH_REFRESH_MILLIS: i64 = 250;
+// const GRAPH_INTERVAL: i64 = 1000 * 2;
+const MIN_TIMEOUT_INTERVAL_MILLIS: i64 = 1000;
+const AUTO_SAVE_MINS: i64 = 5;
 
 pub type Sample = (IpAddr, u128, Option<u16>);
 
@@ -117,11 +100,31 @@ impl AppData {
     }
 }
 
+const _PAD_5: Rect<D> = Rect {
+    start: D::Points(10.0),
+    end: D::Points(10.0),
+    top: D::Points(10.0),
+    bottom: D::Points(10.0),
+};
+const PAD_2: Rect<D> = Rect {
+    start: D::Points(2.0),
+    end: D::Points(2.0),
+    top: D::Points(2.0),
+    bottom: D::Points(2.0),
+};
+const PAD_SHRINK_1: Rect<D> = Rect {
+    start: D::Points(-1.0),
+    end: D::Points(-1.0),
+    top: D::Points(-1.0),
+    bottom: D::Points(-1.0),
+};
+
+
 #[derive(Default, NwgUi)]
 pub struct BasicApp {
     data: RefCell<AppData>,
 
-    #[nwg_control(size: (610, 400), position: (300, 300), title: "Connection Tracker", flags: "MAIN_WINDOW|VISIBLE")]
+    #[nwg_control(size: (640, 480), title: "Connection Tracker", flags: "MAIN_WINDOW|VISIBLE")]
     #[nwg_events( OnWindowClose: [BasicApp::on_window_close], OnInit: [BasicApp::on_window_init], OnWindowMinimize: [BasicApp::on_window_minimize] )]
     window: nwg::Window,
 
@@ -132,7 +135,6 @@ pub struct BasicApp {
     #[nwg_resource]
     embed: nwg::EmbedResource,
 
-    //#[nwg_resource(source_file: Some("./resources/cog.ico"))]
     #[nwg_resource(source_embed: Some(&data.embed), source_embed_str: Some("MAINICON"))]
     icon: nwg::Icon,
 
@@ -148,44 +150,64 @@ pub struct BasicApp {
     tray_item1: nwg::MenuItem,
 
     // Main UX
-    #[nwg_layout(parent: window, padding: PAD_10, auto_spacing: None, flex_direction: FlexDirection::Column, justify_content: JustifyContent::Center)]
+    #[nwg_layout(parent: window, auto_spacing: None, flex_direction: FlexDirection::Column, justify_content: JustifyContent::Center)]
     main_layout: nwg::FlexboxLayout,
 
-    #[nwg_control] // maybe? ( flags:"BORDER")]
-    #[nwg_layout_item(layout: main_layout,  min_size: Size { width: D::Percent(1.0), height: D::Points(100.0) }, size: Size { width: D::Percent(1.0), height: D::Points(1000.0)})]
+    #[nwg_control(text: "Latency", flags:"VISIBLE")]
+    #[nwg_layout_item(layout: main_layout, margin: PAD_2, min_size: Size { width: D::Percent(0.96), height: D::Points(25.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(25.0) },)]
+    graph_label: nwg::Label,
+
+    #[nwg_control(flags: "VISIBLE")] 
+    #[nwg_layout_item(layout: main_layout, margin: PAD_SHRINK_1, min_size: Size { width: D::Percent(1.0), height: D::Points(100.0) }, size: Size { width: D::Percent(1.0), height: D::Points(1000.0)})]
     graph_frame: nwg::Frame,
 
     #[nwg_partial(parent: graph_frame)]
     graph: GraphUi,
 
-    #[nwg_control( flags:"VISIBLE|HORIZONTAL|RANGE")]
-    #[nwg_layout_item(layout: main_layout, min_size: Size { width: D::Percent(1.0), height: D::Points(40.0)}, max_size: Size { width: D::Percent(1.0), height: D::Points(40.0)})]
-    slider: nwg::TrackBar,
+    #[nwg_control(text: "", flags:"NONE")]
+    #[nwg_layout_item(layout: main_layout, margin: PAD_2, min_size: Size { width: D::Percent(0.96), height: D::Points(25.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(25.0) },)]
+    log_spacer: nwg::Label,
 
-    #[nwg_control]
-    #[nwg_layout_item(layout: main_layout,  min_size: Size { width: D::Percent(1.0), height: D::Points(40.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(40.0) },)]
-    message: nwg::Label,
+    #[nwg_control(text: "Log", flags:"VISIBLE")]
+    #[nwg_layout_item(layout: main_layout, margin: PAD_2, min_size: Size { width: D::Percent(0.96), height: D::Points(25.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(25.0) },)]
+    log_label: nwg::Label,
 
-    #[nwg_control(parent: window, flags: "VISIBLE")]
-    #[nwg_layout_item(layout: main_layout, min_size: Size { width: D::Percent(1.0), height: D::Points(60.0)}, max_size: Size { width: D::Percent(1.0), height: D::Points(60.0)})]
-    button_frame: nwg::Frame,
+    #[nwg_control(text: "", flags:"VISIBLE|VSCROLL")]
+    #[nwg_layout_item(layout: main_layout, margin: PAD_SHRINK_1,  min_size: Size { width: D::Percent(0.96), height: D::Points(100.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(100.0) },)]
+    log: nwg::TextBox,
 
-    #[nwg_layout(parent: button_frame, padding: PAD_10_TOP_BOTTON,  auto_spacing: None, flex_direction: FlexDirection::Row, align_items: AlignItems::Center, justify_content: JustifyContent::FlexEnd)]
-    button_layout: nwg::FlexboxLayout,
+    #[nwg_control(flags: "VISIBLE")] 
+    #[nwg_layout_item(layout: main_layout, min_size: Size { width: D::Percent(1.0), height: D::Points(60.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(60.0)})]
+    status_frame: nwg::Frame,
 
-    #[nwg_control(parent: button_frame, text: "Reset")]
-    #[nwg_layout_item(layout: button_layout,  margin: PAD_10, size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
+    #[nwg_layout(parent: status_frame, auto_spacing: None, flex_direction: FlexDirection::Row, align_items: AlignItems::Center, justify_content: JustifyContent::FlexEnd)]
+    status_layout: nwg::FlexboxLayout,
+
+    #[nwg_control(parent: status_frame, text: "Reset Stats")]
+    #[nwg_layout_item(layout: status_layout,  margin: PAD_2, min_size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
     #[nwg_events( OnButtonClick: [BasicApp::on_reset_click] )]
     reset_button: nwg::Button,
 
-    #[nwg_control(parent: button_frame, text: "Save Logs")]
-    #[nwg_layout_item(layout: button_layout, margin: PAD_10, size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
-    #[nwg_events( OnButtonClick: [BasicApp::on_save_report_menu_item_selected] )]
-    save_report_button: nwg::Button,
+    #[nwg_control(parent: status_frame, focus: true, text: "Close")]
+    #[nwg_layout_item(layout: status_layout, margin: PAD_2, size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
+    #[nwg_events( OnButtonClick: [BasicApp::on_window_close] )]
+    close_button: nwg::Button,
+
+    #[nwg_control(text: "", flags:"NONE")]
+    #[nwg_layout_item(layout: main_layout, min_size: Size { width: D::Percent(0.96), height: D::Points(25.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(25.0) },)]
+    statusbar_spacer: nwg::Label,
+
+    #[nwg_control(parent: window)]
+    message: nwg::StatusBar,
+
+
+    // Tracbar for displaying - not currently used.
+    #[nwg_control( flags:"HORIZONTAL|RANGE")] // not visible 
+    // #[nwg_layout_item(layout: main_layout, min_size: Size { width: D::Percent(1.0), height: D::Points(40.0)}, max_size: Size { width: D::Percent(1.0), height: D::Points(40.0)})]
+    slider: nwg::TrackBar,
+
+
     
-    #[nwg_control(parent: button_frame, check_state: CheckBoxState::Checked, text: "Auto save")]
-    #[nwg_layout_item(layout: button_layout,   size: Size { width: D::Points(120.0), height: D::Points(40.0) },)]
-    auto_save: nwg::CheckBox,
 }
 
 impl BasicApp {
@@ -194,6 +216,10 @@ impl BasicApp {
         self.slider.set_range_max(100);
         self.graph.init(40, 0, 50);
         self.graph.on_resize();
+        self.log.set_text(&format!(
+            "Started at {}",
+            self.data.borrow()._app_start.format("%F at %r")
+        ))
     }
 
     fn on_reset_click(&self) {
@@ -217,28 +243,41 @@ impl BasicApp {
         {
             let mut data = self.data.borrow_mut();
             data.record_observation(sample);
-            let (dst, timestamp, ping_response) = sample;
+            let (_dst, timestamp, ping_response) = sample;
             if let Some(rtt) = ping_response {
+                if data.last_sample_display_timeout_notification {
+                    let mut text = self.log.text();
+                    text.push_str(&format!(
+                        "\r\nDisconnected at {} for {} seconds",
+                        data.timeout_start.unwrap().format("%r"),
+                        (utils::timestamp_to_datetime(timestamp as u128)
+                            - data.timeout_start.unwrap())
+                        .num_seconds()
+                    ));
+                    self.log.set_text(&text);
+                }
                 data.last_sample_display_timeout_notification = false;
                 data.timeout_start = None;
                 let message = format!(
-                    "{} ms ({}:{}) {:.1} avg to {}",
+                    "{} ms ({}:{}) {:.1}",
                     rtt,
                     data.min,
                     data.max,
                     data.average(),
-                    dst,
+                    // dst,
                 );
-                self.message.set_text(&message);
+                self.message.set_text(0, &message);
                 self.slider.set_pos(rtt as usize);
                 self.slider
                     .set_selection_range_pos(data.min as usize..data.max as usize);
             } else {
-                self.message.set_text("Disconnected");
+                self.message.set_text(0,"Disconnected");
                 let datetime = utils::timestamp_to_datetime(timestamp as u128);
                 if data.last_sample_display_timeout_notification == false
                     && data.timeout_start.is_some()
-                    && datetime > (data.timeout_start.unwrap() + Duration::seconds(1))
+                    && datetime
+                        > (data.timeout_start.unwrap()
+                            + Duration::milliseconds(MIN_TIMEOUT_INTERVAL_MILLIS))
                 {
                     self.display_notification("Disconnected");
                     data.last_sample_display_timeout_notification = true;
@@ -269,7 +308,7 @@ impl BasicApp {
         let datetime = Local::now();
         {
             let mut data = self.data.borrow_mut();
-            if datetime > (data.last_full_update + Duration::milliseconds(250)) {
+            if datetime > (data.last_full_update + Duration::milliseconds(GRAPH_REFRESH_MILLIS)) {
                 data.sort();
                 self.graph.set_values(&data.samples);
                 self.graph.on_resize();
@@ -280,9 +319,9 @@ impl BasicApp {
         let auto_save;
         {
             let data = self.data.borrow();
-            if self.auto_save.check_state() == nwg::CheckBoxState::Checked
+            if true // self.auto_save.check_state() == nwg::CheckBoxState::Checked
                 && data.last_saved.is_none()
-                || data.last_saved.unwrap() + Duration::minutes(10) < datetime
+                || data.last_saved.unwrap() + Duration::minutes(AUTO_SAVE_MINS) < datetime
             {
                 auto_save = true;
             } else {

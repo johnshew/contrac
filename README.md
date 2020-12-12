@@ -13,7 +13,7 @@ Resources
 Should add minimimize and restore to native-windows-gui
 
 
-
+Might want to include WS_CLIPSIBLINGS in flags.
 
 
 ### Recommended Visual Studio Extensions
