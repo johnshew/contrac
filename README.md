@@ -2,9 +2,9 @@
 
 Contrac monitors your Internet Service Provider and generates a log of down time.
 
-This tracker pings Google, Cloudflare, and Cisco to determine connectivity.
+![](contrac.png?raw=true)
 
-This windows app is a single file .exe, with embedded resources, tray notification, and window minimization to the tray.
+The tracker pings Google, Cloudflare, and Cisco to determine connectivity. The app is a single file .exe. It has embedded resources, tray notifications, and supports window minimization to the tray area.
 
 ## Installation
 
