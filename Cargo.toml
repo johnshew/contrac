@@ -7,6 +7,8 @@ edition = "2018"
 repository = "https://github.com/johnshew/contrac"
 documentation= "https://github.com/johnshew/contrac"
 build= "build.rs"
+license="MIT"
+keywords = ["windows", "win32", "network"]
 
 [package.metadata.winres]
 LegalCopyright = "Copyright © 2020"
