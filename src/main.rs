@@ -1,5 +1,6 @@
 #![windows_subsystem = "windows"]
 
+use anyhow::{Context, Result};
 use chrono::{DateTime, Duration, Local};
 use std::cell::RefCell;
 use std::collections::VecDeque;
@@ -236,7 +237,7 @@ impl App {
     }
 
     fn on_window_close(&self) {
-        self.write_timeouts_log();
+        self.write_timeouts_log().unwrap();
         nwg::stop_thread_dispatch();
     }
 
@@ -335,7 +336,10 @@ impl App {
         }
 
         if auto_save {
-            self.write_timeouts_log();            
+            let e = self.write_timeouts_log();
+            if let Err(err) = e {
+                self.app_log_write(&format!("{}", err));
+            }
         }
     }
 
@@ -375,15 +379,15 @@ impl App {
         file.sync_all().expect("file sync failed");
     }
 
-    fn write_timeouts_log(&self) {
-        self.app_log_write("Saving timeouts");
+    fn write_timeouts_log(&self) -> Result<()> {
+        // self.app_log_write("Saving timeouts");
         enum TimeoutTracker {
             Active { start: DateTime<Local> },
             Nominal,
         };
         let mut data = self.data.borrow_mut();
         let mut file = File::create(format!("{} timeouts.log", &data.log_identifier))
-            .expect("file create failed");
+            .context(format!("unable to open '{}'", &data.log_identifier))?;
         let mut timeout_status = TimeoutTracker::Nominal;
         for (_address, time, rtt) in &data.samples {
             if rtt.is_some() {
@@ -393,7 +397,8 @@ impl App {
                     timeout_status = TimeoutTracker::Nominal;
                     // if offline_duration < 1.0 { continue; }  // uncomment to ignore small duration timeouts
                     let message = format!("{}, {}, {}\r\n", start, end, offline_duration);
-                    file.write_all(message.as_bytes()).unwrap();
+                    file.write_all(message.as_bytes())
+                        .context(format!("write failed"))?;
                 } else {
                     continue;
                 }
@@ -407,9 +412,10 @@ impl App {
                 }
             }
         }
-        file.sync_all().expect("file sync failed");
+        file.sync_all().context(format!("sync failed"))?;
         data.last_saved = Some(Local::now());
-        self.app_log_write("Timeouts saved");
+        // self.app_log_write("Timeouts saved");
+        Ok(())
     }
 
     fn on_save_report_menu_item_selected(&self) {
@@ -423,7 +429,7 @@ impl App {
             .show("Status", Some(message), Some(flags), Some(&self.icon));
     }
 
-    pub fn spawn_pinger(&self, address: &str, delay_millis: u32) -> thread::JoinHandle<()> {
+    pub fn spawn_pinger(&self, address: &str, delay_millis: u32) -> Result<thread::JoinHandle<()>> {
         let sender = self.data.borrow().samples_sender.clone();
         let dst = String::from(address)
             .parse::<IpAddr>()
@@ -454,16 +460,19 @@ impl App {
                 thread::sleep_ms(delay_millis);
             }
         });
-        handle
+        Ok(handle)
     }
 }
 
-fn main() {
-    nwg::init().expect("Failed to init Native Windows GUI");
-    nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
-    let app = App::build_ui(Default::default()).expect("Failed to build UI");
-    app.spawn_pinger("1.1.1.2", 600);
-    app.spawn_pinger("8.8.8.8", 600);
-    app.spawn_pinger("208.67.222.222", 600);
+fn main() -> Result<()> {
+    nwg::init().context("Failed to init app")?;
+    nwg::Font::set_global_family("Segoe UI").context("Failed to set default font")?;
+    let app = App::build_ui(Default::default()).context("Failed to build UI")?;
+    let _pingers = vec!(
+        app.spawn_pinger("1.1.1.2", 600)?,
+        app.spawn_pinger("8.8.8.8", 600)?,
+        app.spawn_pinger("208.67.222.222", 600)?,
+    );
     nwg::dispatch_thread_events();
+    Ok(())
 }
