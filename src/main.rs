@@ -17,7 +17,7 @@ extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
 use nwg::stretch::{
     geometry::{Rect, Size},
-    style::{Dimension as D,  AlignItems, FlexDirection, JustifyContent},
+    style::{AlignItems, Dimension as D, FlexDirection, JustifyContent},
 };
 use nwg::NativeUi;
 
@@ -28,7 +28,6 @@ mod utils;
 use crate::graph::*;
 
 const GRAPH_REFRESH_MILLIS: i64 = 250;
-// const GRAPH_INTERVAL: i64 = 1000 * 2;
 const MIN_TIMEOUT_INTERVAL_MILLIS: i64 = 1000;
 const AUTO_SAVE_MINS: i64 = 5;
 
@@ -119,7 +118,6 @@ const PAD_SHRINK_1: Rect<D> = Rect {
     bottom: D::Points(-1.0),
 };
 
-
 #[derive(Default, NwgUi)]
 pub struct BasicApp {
     data: RefCell<AppData>,
@@ -157,7 +155,7 @@ pub struct BasicApp {
     #[nwg_layout_item(layout: main_layout, margin: PAD_2, min_size: Size { width: D::Percent(0.96), height: D::Points(25.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(25.0) },)]
     graph_label: nwg::Label,
 
-    #[nwg_control(flags: "VISIBLE")] 
+    #[nwg_control(flags: "VISIBLE")]
     #[nwg_layout_item(layout: main_layout, margin: PAD_SHRINK_1, min_size: Size { width: D::Percent(1.0), height: D::Points(100.0) }, size: Size { width: D::Percent(1.0), height: D::Points(1000.0)})]
     graph_frame: nwg::Frame,
 
@@ -176,7 +174,7 @@ pub struct BasicApp {
     #[nwg_layout_item(layout: main_layout, margin: PAD_SHRINK_1,  min_size: Size { width: D::Percent(0.96), height: D::Points(100.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(100.0) },)]
     log: nwg::TextBox,
 
-    #[nwg_control(flags: "VISIBLE")] 
+    #[nwg_control(flags: "VISIBLE")]
     #[nwg_layout_item(layout: main_layout, min_size: Size { width: D::Percent(1.0), height: D::Points(60.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(60.0)})]
     status_frame: nwg::Frame,
 
@@ -200,14 +198,10 @@ pub struct BasicApp {
     #[nwg_control(parent: window)]
     message: nwg::StatusBar,
 
-
     // Tracbar for displaying - not currently used.
-    #[nwg_control( flags:"HORIZONTAL|RANGE")] // not visible 
+    #[nwg_control( flags:"HORIZONTAL|RANGE")] // not visible
     // #[nwg_layout_item(layout: main_layout, min_size: Size { width: D::Percent(1.0), height: D::Points(40.0)}, max_size: Size { width: D::Percent(1.0), height: D::Points(40.0)})]
     slider: nwg::TrackBar,
-
-
-    
 }
 
 impl BasicApp {
@@ -271,7 +265,7 @@ impl BasicApp {
                 self.slider
                     .set_selection_range_pos(data.min as usize..data.max as usize);
             } else {
-                self.message.set_text(0,"Disconnected");
+                self.message.set_text(0, "Disconnected");
                 let datetime = utils::timestamp_to_datetime(timestamp as u128);
                 if data.last_sample_display_timeout_notification == false
                     && data.timeout_start.is_some()
@@ -398,7 +392,7 @@ impl BasicApp {
                 }
             }
         }
-        file.sync_all().expect("file sync failed")
+        file.sync_all().expect("file sync failed");
     }
 
     fn on_save_report_menu_item_selected(&self) {
@@ -431,6 +425,8 @@ impl BasicApp {
                         ping_response = Some(rtt as u16);
                     }
                     Err(_err) => {
+                        // if let Error::timeout = err {
+                        // }
                         ping_response = None;
                     }
                 };
