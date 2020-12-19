@@ -119,15 +119,15 @@ const PAD_SHRINK_1: Rect<D> = Rect {
 };
 
 #[derive(Default, NwgUi)]
-pub struct BasicApp {
+pub struct App {
     data: RefCell<AppData>,
 
     #[nwg_control(size: (640, 480), title: "Connection Tracker", flags: "MAIN_WINDOW|VISIBLE")]
-    #[nwg_events( OnWindowClose: [BasicApp::on_window_close], OnInit: [BasicApp::on_window_init], OnWindowMinimize: [BasicApp::on_window_minimize] )]
+    #[nwg_events( OnWindowClose: [App::on_window_close], OnInit: [App::on_window_init], OnWindowMinimize: [App::on_window_minimize] )]
     window: nwg::Window,
 
     #[nwg_control(interval: 1000, stopped: false)]
-    #[nwg_events( OnTimerTick: [BasicApp::on_timer_tick] )]
+    #[nwg_events( OnTimerTick: [App::on_timer_tick] )]
     timer: nwg::Timer,
 
     #[nwg_resource]
@@ -137,14 +137,14 @@ pub struct BasicApp {
     icon: nwg::Icon,
 
     #[nwg_control(icon: Some(&data.icon), tip: Some("Connection Tracker"))]
-    #[nwg_events(MousePressLeftUp: [BasicApp::on_tray_mouse_press_left_up], OnContextMenu: [BasicApp::on_tray_show_menu])]
+    #[nwg_events(MousePressLeftUp: [App::on_tray_mouse_press_left_up], OnContextMenu: [App::on_tray_show_menu])]
     tray: nwg::TrayNotification,
 
     #[nwg_control(parent: window, popup: true)]
     tray_menu: nwg::Menu,
 
-    #[nwg_control(parent: tray_menu, text: "Save Reports")]
-    #[nwg_events(OnMenuItemSelected: [BasicApp::on_save_report_menu_item_selected])]
+    #[nwg_control(parent: tray_menu, text: "Save Samples")]
+    #[nwg_events(OnMenuItemSelected: [App::on_save_report_menu_item_selected])]
     tray_item1: nwg::MenuItem,
 
     // Main UX
@@ -183,12 +183,12 @@ pub struct BasicApp {
 
     #[nwg_control(parent: status_frame, text: "Reset Stats")]
     #[nwg_layout_item(layout: status_layout,  margin: PAD_2, min_size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
-    #[nwg_events( OnButtonClick: [BasicApp::on_reset_click] )]
+    #[nwg_events( OnButtonClick: [App::on_reset_click] )]
     reset_button: nwg::Button,
 
     #[nwg_control(parent: status_frame, focus: true, text: "Close")]
     #[nwg_layout_item(layout: status_layout, margin: PAD_2, size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
-    #[nwg_events( OnButtonClick: [BasicApp::on_window_close] )]
+    #[nwg_events( OnButtonClick: [App::on_window_close] )]
     close_button: nwg::Button,
 
     #[nwg_control(text: "", flags:"NONE")]
@@ -204,16 +204,27 @@ pub struct BasicApp {
     slider: nwg::TrackBar,
 }
 
-impl BasicApp {
+impl App {
     fn on_window_init(&self) {
         self.slider.set_range_min(0);
         self.slider.set_range_max(100);
         self.graph.init(40, 0, 50);
         self.graph.on_resize();
-        self.log.set_text(&format!(
+        let message = &format!(
             "Started at {}",
             self.data.borrow()._app_start.format("%F at %r")
-        ))
+        );
+        self.log.set_text(message);
+    }
+
+    fn app_log_write(&self, message: &str) {
+        let mut text = self.log.text();
+        text.push_str(&format!(
+            "\r\n{} {}",
+            Local::now().format("%F at %r: "),
+            message
+        ));
+        self.log.set_text(&text);
     }
 
     fn on_reset_click(&self) {
@@ -225,7 +236,7 @@ impl BasicApp {
     }
 
     fn on_window_close(&self) {
-        self.write_log();
+        self.write_timeouts_log();
         nwg::stop_thread_dispatch();
     }
 
@@ -324,7 +335,7 @@ impl BasicApp {
         }
 
         if auto_save {
-            self.write_log();
+            self.write_timeouts_log();            
         }
     }
 
@@ -338,7 +349,8 @@ impl BasicApp {
         utils::PostMessage(&self.window.handle, WM_SYSCOMMAND, SC_RESTORE, 0);
     }
 
-    fn write_log(&self) {
+    fn write_samples_log(&self) {
+        self.app_log_write("Saving samples");
         {
             let mut data = self.data.borrow_mut();
             data.sort();
@@ -361,12 +373,15 @@ impl BasicApp {
             file.write_all(message).unwrap();
         }
         file.sync_all().expect("file sync failed");
+    }
 
+    fn write_timeouts_log(&self) {
+        self.app_log_write("Saving timeouts");
         enum TimeoutTracker {
             Active { start: DateTime<Local> },
             Nominal,
         };
-
+        let mut data = self.data.borrow_mut();
         let mut file = File::create(format!("{} timeouts.log", &data.log_identifier))
             .expect("file create failed");
         let mut timeout_status = TimeoutTracker::Nominal;
@@ -393,10 +408,12 @@ impl BasicApp {
             }
         }
         file.sync_all().expect("file sync failed");
+        data.last_saved = Some(Local::now());
+        self.app_log_write("Timeouts saved");
     }
 
     fn on_save_report_menu_item_selected(&self) {
-        self.write_log();
+        self.write_samples_log();
         self.display_notification("Report saved");
     }
 
@@ -444,7 +461,7 @@ impl BasicApp {
 fn main() {
     nwg::init().expect("Failed to init Native Windows GUI");
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
-    let app = BasicApp::build_ui(Default::default()).expect("Failed to build UI");
+    let app = App::build_ui(Default::default()).expect("Failed to build UI");
     app.spawn_pinger("1.1.1.2", 600);
     app.spawn_pinger("8.8.8.8", 600);
     app.spawn_pinger("208.67.222.222", 600);
