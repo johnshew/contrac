@@ -221,8 +221,8 @@ impl App {
     fn app_log_write(&self, message: &str) {
         let mut text = self.log.text();
         text.push_str(&format!(
-            "\r\n{} {}",
-            Local::now().format("%F at %r: "),
+            "\r\n{}: {}",
+            Local::now().format("%F %r"),
             message
         ));
         self.log.set_text(&text);
@@ -254,10 +254,10 @@ impl App {
             if let Some(rtt) = ping_response {
                 if data.last_sample_display_timeout_notification {
                     self.app_log_write(&format!(
-                        "disconnected for {} seconds",
+                        "was disconnected for {} seconds",
                         (utils::timestamp_to_datetime(timestamp as u128)
                             - data.timeout_start.unwrap())
-                        .num_seconds()
+                        .num_milliseconds() as f32 / 1_000 as f32
                     ));
                 }
                 data.last_sample_display_timeout_notification = false;
@@ -320,9 +320,7 @@ impl App {
             }
         }
 
-        let auto_save =
-            { self.data.borrow().last_saved + Duration::minutes(AUTO_SAVE_MINS) > datetime };
-        if auto_save {
+        if self.data.borrow().last_saved + Duration::minutes(AUTO_SAVE_MINS) > datetime  {
             if let Err(err) = self.write_timeouts_log() {
                 self.app_log_write(&format!("{}", err));
             }
