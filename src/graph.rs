@@ -11,6 +11,8 @@ use super::stats;
 use super::utils;
 use crate::Sample;
 
+const GRAPH_INTERVAL_MILLIS : i64 = 1000;
+
 pub struct GraphData {
     bar_count: u16,
     min: u16,
@@ -122,7 +124,7 @@ impl GraphUi {
         // if there is no data in that interval it can be invisible
 
         let now = Local::now();
-        let interval = Duration::seconds(1);
+        let interval = Duration::milliseconds(GRAPH_INTERVAL_MILLIS);
         let mut end_of_interval = (now + interval)
             .duration_trunc(interval)
             .expect("time trucation should always work");
