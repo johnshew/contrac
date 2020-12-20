@@ -226,6 +226,7 @@ impl App {
             message
         ));
         self.log.set_text(&text);
+        utils::VScrollToBottom(&self.log.handle);
     }
 
     fn on_reset_click(&self) {
@@ -252,15 +253,12 @@ impl App {
             let (_dst, timestamp, ping_response) = sample;
             if let Some(rtt) = ping_response {
                 if data.last_sample_display_timeout_notification {
-                    let mut text = self.log.text();
-                    text.push_str(&format!(
-                        "\r\nDisconnected at {} for {} seconds",
-                        data.timeout_start.unwrap().format("%r"),
+                    self.app_log_write(&format!(
+                        "disconnected for {} seconds",
                         (utils::timestamp_to_datetime(timestamp as u128)
                             - data.timeout_start.unwrap())
                         .num_seconds()
                     ));
-                    self.log.set_text(&text);
                 }
                 data.last_sample_display_timeout_notification = false;
                 data.timeout_start = None;

@@ -118,9 +118,8 @@ impl GraphUi {
     }
 
     pub fn set_values(&self, samples: &VecDeque<Sample>) {
-        // Loop backward in time in 10 second intervals aligned to clock.
-        // so find now to the nearest forward 10 second aligned time in nanoseconds and then iterate backward in time.alloc
-        // if there is a timeout in that interval then that bar should be red.
+        // Loop backward in time in 1 second intervals aligned to clock.
+        // so find now to the nearest forward 1 second aligned time in nanoseconds and then iterate backward in time.
         // if there is no data in that interval it can be invisible
 
         let now = Local::now();
