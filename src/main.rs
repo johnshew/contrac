@@ -367,7 +367,8 @@ impl App {
     }
 
     fn write_timeouts_log(&self) -> Result<()> {
-        if let Err(err) = || -> Result<()> {
+        match || -> Result<()> {
+            // use closure to capture errors and enable '?' syntax
             enum TimeoutTracker {
                 Active { start: DateTime<Local> },
                 Nominal,
@@ -401,10 +402,9 @@ impl App {
             }
             Ok(())
         }() {
-            self.app_log_write(&format!("error saving timesout log {:#?}", err));
-        } else {
-            self.data.borrow_mut().last_saved = Local::now();
-        }
+            Ok(_) => self.data.borrow_mut().last_saved = Local::now(),
+            Err(err) => self.app_log_write(&format!("error saving timesout log {:#?}", err)),
+        };
         Ok(())
     }
 
@@ -438,8 +438,6 @@ impl App {
                         ping_response = Some(rtt as u16);
                     }
                     Err(_err) => {
-                        // if let Error::timeout = err {
-                        // }
                         ping_response = None;
                     }
                 };
