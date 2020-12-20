@@ -47,7 +47,7 @@ pub struct AppData {
     samples_sender: Sender<Sample>,
     _app_start: DateTime<Local>,
     log_identifier: String,
-    last_saved: Option<DateTime<Local>>,
+    last_saved: DateTime<Local>,
 }
 
 impl Default for AppData {
@@ -67,7 +67,7 @@ impl Default for AppData {
             samples_sender: s,
             _app_start: now,
             log_identifier: format!("{}", now.format("%Y-%m-%d %H-%M-%S-%3f %z")),
-            last_saved: None,
+            last_saved: Local::now(),
         }
     }
 }
@@ -322,22 +322,10 @@ impl App {
             }
         }
 
-        let auto_save;
-        {
-            let data = self.data.borrow();
-            if true // self.auto_save.check_state() == nwg::CheckBoxState::Checked
-                && data.last_saved.is_none()
-                || data.last_saved.unwrap() + Duration::minutes(AUTO_SAVE_MINS) < datetime
-            {
-                auto_save = true;
-            } else {
-                auto_save = false;
-            }
-        }
-
+        let auto_save =
+            { self.data.borrow().last_saved + Duration::minutes(AUTO_SAVE_MINS) > datetime };
         if auto_save {
-            let e = self.write_timeouts_log();
-            if let Err(err) = e {
+            if let Err(err) = self.write_timeouts_log() {
                 self.app_log_write(&format!("{}", err));
             }
         }
@@ -358,7 +346,6 @@ impl App {
         {
             let mut data = self.data.borrow_mut();
             data.sort();
-            data.last_saved = Some(Local::now());
         }
 
         let data = self.data.borrow();
@@ -367,8 +354,8 @@ impl App {
 
         for (address, time, rtt) in &data.samples {
             let date_time = utils::timestamp_to_datetime(*time);
-            let result = if rtt.is_some() {
-                rtt.unwrap().to_string()
+            let result = if let Some(rtt) = rtt {
+                rtt.to_string()
             } else {
                 String::from("timeout")
             };
@@ -380,41 +367,44 @@ impl App {
     }
 
     fn write_timeouts_log(&self) -> Result<()> {
-        // self.app_log_write("Saving timeouts");
-        enum TimeoutTracker {
-            Active { start: DateTime<Local> },
-            Nominal,
-        };
-        let mut data = self.data.borrow_mut();
-        let mut file = File::create(format!("{} timeouts.log", &data.log_identifier))
-            .context(format!("unable to open '{}'", &data.log_identifier))?;
-        let mut timeout_status = TimeoutTracker::Nominal;
-        for (_address, time, rtt) in &data.samples {
-            if rtt.is_some() {
-                if let TimeoutTracker::Active { start } = timeout_status {
-                    let end = utils::timestamp_to_datetime(*time);
-                    let offline_duration = (end - start).num_milliseconds() as f32 / 1_000.0;
-                    timeout_status = TimeoutTracker::Nominal;
-                    // if offline_duration < 1.0 { continue; }  // uncomment to ignore small duration timeouts
-                    let message = format!("{}, {}, {}\r\n", start, end, offline_duration);
-                    file.write_all(message.as_bytes())
-                        .context(format!("write failed"))?;
+        if let Err(err) = || -> Result<()> {
+            enum TimeoutTracker {
+                Active { start: DateTime<Local> },
+                Nominal,
+            };
+            let data = self.data.borrow();
+            let mut file = File::create(format!("{} timeouts.log", &data.log_identifier))
+                .context(format!("unable to open '{}'", &data.log_identifier))?;
+            let mut timeout_status = TimeoutTracker::Nominal;
+            for (_address, time, rtt) in &data.samples {
+                if rtt.is_some() {
+                    if let TimeoutTracker::Active { start } = timeout_status {
+                        let end = utils::timestamp_to_datetime(*time);
+                        let offline_duration = (end - start).num_milliseconds() as f32 / 1_000.0;
+                        timeout_status = TimeoutTracker::Nominal;
+                        // if offline_duration < 1.0 { continue; }  // uncomment to ignore small duration timeouts
+                        let message = format!("{}, {}, {}\r\n", start, end, offline_duration);
+                        file.write_all(message.as_bytes())
+                            .context(format!("write failed"))?;
+                    } else {
+                        continue;
+                    }
                 } else {
-                    continue;
-                }
-            } else {
-                if let TimeoutTracker::Active { start: _ } = timeout_status {
-                    continue;
-                } else {
-                    timeout_status = TimeoutTracker::Active {
-                        start: utils::timestamp_to_datetime(*time),
+                    if let TimeoutTracker::Active { start: _ } = timeout_status {
+                        continue;
+                    } else {
+                        timeout_status = TimeoutTracker::Active {
+                            start: utils::timestamp_to_datetime(*time),
+                        }
                     }
                 }
             }
+            Ok(())
+        }() {
+            self.app_log_write(&format!("error saving timesout log {:#?}", err));
+        } else {
+            self.data.borrow_mut().last_saved = Local::now();
         }
-        file.sync_all().context(format!("sync failed"))?;
-        data.last_saved = Some(Local::now());
-        // self.app_log_write("Timeouts saved");
         Ok(())
     }
 
@@ -433,7 +423,7 @@ impl App {
         let sender = self.data.borrow().samples_sender.clone();
         let dst = String::from(address)
             .parse::<IpAddr>()
-            .expect("Could not parse IP Address");
+            .context("Could not parse IP Address")?;
         let handle = thread::spawn(move || {
             let pinger = Pinger::new().unwrap();
             let mut buffer = Buffer::new();
@@ -441,7 +431,7 @@ impl App {
                 let ping_response;
                 let timestamp = SystemTime::now()
                     .duration_since(UNIX_EPOCH)
-                    .expect("Bad time value")
+                    .unwrap()
                     .as_nanos();
                 match pinger.send(dst, &mut buffer) {
                     Ok(rtt) => {
@@ -453,7 +443,7 @@ impl App {
                         ping_response = None;
                     }
                 };
-                if let Err(_e) = sender.send((dst, timestamp, ping_response)) {
+                if let Err(_err) = sender.send((dst, timestamp, ping_response)) {
                     break; // stop the loop if there is an error.
                 }
                 #[allow(deprecated)]
@@ -468,11 +458,12 @@ fn main() -> Result<()> {
     nwg::init().context("Failed to init app")?;
     nwg::Font::set_global_family("Segoe UI").context("Failed to set default font")?;
     let app = App::build_ui(Default::default()).context("Failed to build UI")?;
-    let _pingers = vec!(
-        app.spawn_pinger("1.1.1.2", 600)?,
-        app.spawn_pinger("8.8.8.8", 600)?,
-        app.spawn_pinger("208.67.222.222", 600)?,
-    );
+    let _pingers = vec![
+        app.spawn_pinger("1.1.1.2", 1010)?,        // CloudFlare
+        app.spawn_pinger("8.8.8.8", 1010)?,        // Google
+        app.spawn_pinger("208.67.222.222", 1010)?, // Cisco OpenDNS
+        app.spawn_pinger("9.9.9.9", 1010)?,        // Quad9
+    ];
     nwg::dispatch_thread_events();
     Ok(())
 }
