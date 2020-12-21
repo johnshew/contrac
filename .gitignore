@@ -11,3 +11,4 @@ Cargo.lock
 
 **/*samples*.log
 **/*timeouts*.log
+msix/Contrac-x64.msix

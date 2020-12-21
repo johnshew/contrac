@@ -18,17 +18,6 @@ Since Contrac automatically writes to the log files every 5 minutes it is good t
 
 This was an interesting first project to learn Rust. Thanks to [Gabriel Dube](https://github.com/gabdube) for creating native-windows-gui, a nice toolkit for small native Win32 apps.
 
-The graph rendering in Contrac is a hack.  Since there are currently no easy-to-use drawing capabilties with native-windows-gui, Contrac uses a collection of small image controls to represent the bars of the graph.
-
-On Windows, by default, Rust starts a console.  If you want a Windows app put the following at the top of main.rs.
-
-``` #![windows_subsystem = "windows"] ```
-
-Here a few things that I thought about PRing into native-windows-gui:
-* Minimize and restore windows
-* Maybe enable WS_CLIPSIBLINGS in flags for controls and enable z-ordering
-* Provide more access to the nwg::win32 helper functions
-
 ## Recommended Visual Studio Extensions
 
 * https://marketplace.visualstudio.com/items?itemName=rust-lang.rust
