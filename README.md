@@ -4,15 +4,15 @@ Contrac monitors your Internet Service Provider and generates a log of down time
 
 ![](contrac.png?raw=true)
 
-The tracker pings Google, Cloudflare, and Cisco to determine connectivity. The app is a single file .exe. It has embedded resources, tray notifications, and supports window minimization to the tray area.
+The tracker pings Cloudflare, Cisco OpenDNS, Google, and Quad9 to determine connectivity. No service is pinged more than once per second.  
+
+The app is a single file .exe with has embedded resources, tray notifications, and supports minimization to the tray area.  It is packaged as an MSIX to enable easy installation and clean up.
 
 ## Installation
 
-Copy the latest release of the exe to your computer from here
+Copy the latest release of the .msix or .exe to your computer from here
 
 https://github.com/johnshew/contrac/releases
-
-Since Contrac automatically writes to the log files every 5 minutes it is good to put the exe in the directory you want the logs to go.
 
 ## Notes
 
