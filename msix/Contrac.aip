@@ -45,9 +45,9 @@
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiFilesComponent">
     <ROW File="contrac.exe" Component_="contrac.exe" FileName="contrac.exe" Attributes="0" SourcePath="..\target\release\contrac.exe" SelfReg="false" DigSign="true"/>
-    <ROW File="Store50x50Logo.scale100.png" Component_="Store50x50Logo.scale100.png" FileName="STORE5~2.PNG|Store50x50Logo.scale-100.png" Attributes="0" SourcePath="&lt;AI_RES&gt;appx\StoreLogo.png" SelfReg="false"/>
-    <ROW File="contrac.exeSquare44x44Logo.scale100.png" Component_="Store50x50Logo.scale100.png" FileName="CONTRA~1.PNG|contrac.exeSquare44x44Logo.scale-100.png" Attributes="0" SourcePath="&lt;AI_RES&gt;appx\SmallLogo10.png" SelfReg="false"/>
-    <ROW File="contrac.exeSquare150x150Logo.scale100.png" Component_="Store50x50Logo.scale100.png" FileName="CONTRA~3.PNG|contrac.exeSquare150x150Logo.scale-100.png" Attributes="0" SourcePath="&lt;AI_RES&gt;appx\Logo.png" SelfReg="false"/>
+    <ROW File="Store50x50Logo.scale100.png" Component_="Store50x50Logo.scale100.png" FileName="STORE5~1.PNG|Store50x50Logo.scale-100.png" Attributes="0" SourcePath="logo-50x50.png" SelfReg="false"/>
+    <ROW File="contrac.exeSquare44x44Logo.scale100.png" Component_="Store50x50Logo.scale100.png" FileName="CONTRA~2.PNG|contrac.exeSquare44x44Logo.scale-100.png" Attributes="0" SourcePath="logo-44x44.png" SelfReg="false"/>
+    <ROW File="contrac.exeSquare150x150Logo.scale100.png" Component_="Store50x50Logo.scale100.png" FileName="CONTRA~3.PNG|contrac.exeSquare150x150Logo.scale-100.png" Attributes="0" SourcePath="logo-150x150.png" SelfReg="false"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.AppXCfgComponent">
     <ROW ID="Configuration" Order="1" ManifestFile="AppxManifest.xml" TargetOs="4" AutoUpdatesFrequency="0" AutoUpdatesOptions="0"/>
