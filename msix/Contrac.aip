@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<DOCUMENT Type="Advanced Installer" CreateVersion="17.2" version="17.2" Modules="express" RootPath="." Language="en" Id="{736315DF-BF86-4AFD-BB08-83B7A55A7AA0}">
+<DOCUMENT Type="Advanced Installer" CreateVersion="17.2" version="17.8" Modules="express" RootPath="." Language="en" Id="{736315DF-BF86-4AFD-BB08-83B7A55A7AA0}">
   <COMPONENT cid="caphyon.advinst.msicomp.ProjectOptionsComponent">
     <ROW Name="Application_WorkingDir" Value="APPDIR"/>
     <ROW Name="AssetGenConvertedAttrNames" Value="true"/>
@@ -47,10 +47,10 @@
     <ROW File="contrac.exe" Component_="contrac.exe" FileName="contrac.exe" Attributes="0" SourcePath="..\target\release\contrac.exe" SelfReg="false" DigSign="true"/>
     <ROW File="Store50x50Logo.scale100.png" Component_="Store50x50Logo.scale100.png" FileName="STORE5~1.PNG|Store50x50Logo.scale-100.png" Attributes="0" SourcePath="logo-50x50.png" SelfReg="false"/>
     <ROW File="contrac.exeSquare44x44Logo.scale100.png" Component_="Store50x50Logo.scale100.png" FileName="CONTRA~2.PNG|contrac.exeSquare44x44Logo.scale-100.png" Attributes="0" SourcePath="logo-44x44.png" SelfReg="false"/>
-    <ROW File="contrac.exeSquare150x150Logo.scale100.png" Component_="Store50x50Logo.scale100.png" FileName="CONTRA~3.PNG|contrac.exeSquare150x150Logo.scale-100.png" Attributes="0" SourcePath="logo-150x150.png" SelfReg="false"/>
+    <ROW File="contrac.exeSquare150x150Logo.scale100.png" Component_="Store50x50Logo.scale100.png" FileName="CONTRA~1.PNG|contrac.exeSquare150x150Logo.scale-100.png" Attributes="0" SourcePath="logo-150x150.png" SelfReg="false"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.AppXCfgComponent">
-    <ROW ID="Configuration" Order="1" ManifestFile="AppxManifest.xml" TargetOs="4" AutoUpdatesFrequency="0" AutoUpdatesOptions="0"/>
+    <ROW ID="Configuration" Order="1" ManifestFile="AppxManifest.xml" TargetOs="4" AutoUpdatesFrequency="0" AutoUpdatesOptions="0" ManifestBundleFile="AppxBundleManifest.xml"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.BootstrOptComponent">
     <ROW BootstrOptKey="GlobalOptions" DownloadFolder="[AppDataFolder][|Manufacturer]\[|ProductName]\prerequisites" Options="2"/>
@@ -64,7 +64,10 @@
     <ROW Path="&lt;AI_DICTS&gt;ui_en.ail"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.DigCertStoreComponent">
-    <ROW TimeStampUrl="http://timestamp.digicert.com" SignerDescription="[|ProductName]" SignOptions="0" SignTool="0" UseSha256="1" Thumbprint="2629eb795b43d7b741b99ca69ddf9a9335c64293 Subject: TestCert_2020-12-12_17-23-11&#10;Issuer: TestCert_2020-12-12_17-23-11&#10;Valid from 12/12/2020 to 12/12/2021&#10;User\MY" Subject="CN=TestCert_2020-12-12_17-23-11"/>
+    <ROW TimeStampUrl="http://timestamp.digicert.com" SignerDescription="[|ProductName]" SignOptions="0" SignTool="0" UseSha256="1" Subject="CN=TestCert_2020-12-13_8-18-52"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.FixupComponent">
+    <ROW RowType="1" Content="APPDIR" Pattern=".*\.log" ReadOnly="false" Exclusion="false"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.FragmentComponent">
     <ROW Fragment="CommonUI.aip" Path="&lt;AI_FRAGS&gt;CommonUI.aip"/>
@@ -109,16 +112,17 @@
     <ROW XmlAttribute="ShortcutPath_2" XmlElement="DesktopApp_2" Name="ShortcutPath" Flags="0" Order="0" Value="%USERPROFILE%\Desktop\contrac.exe.lnk"/>
     <ROW XmlAttribute="Square150x150Logo" XmlElement="VisualElements" Name="Square150x150Logo" Flags="0" Order="3" FileId="contrac.exeSquare150x150Logo.scale100.png"/>
     <ROW XmlAttribute="Square44x44Logo" XmlElement="VisualElements" Name="Square44x44Logo" Flags="0" Order="4" FileId="contrac.exeSquare44x44Logo.scale100.png"/>
-    <ROW XmlAttribute="Version" XmlElement="Identity" Name="Version" Flags="0" Order="3" Value="1.0.0.0"/>
-    <ROW XmlAttribute="xmlns" XmlElement="Package" Name="xmlns" Flags="14" Order="1" Value="http://schemas.microsoft.com/appx/manifest/foundation/windows10"/>
-    <ROW XmlAttribute="xmlnsbuild" XmlElement="Package" Name="xmlns:build" Flags="14" Order="2" Value="http://schemas.microsoft.com/developer/appx/2015/build"/>
-    <ROW XmlAttribute="xmlnsrescap" XmlElement="Package" Name="xmlns:rescap" Flags="14" Order="4" Value="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"/>
-    <ROW XmlAttribute="xmlnsrescap3" XmlElement="Package" Name="xmlns:rescap3" Flags="14" Order="5" Value="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities/3"/>
-    <ROW XmlAttribute="xmlnsuap" XmlElement="Package" Name="xmlns:uap" Flags="14" Order="3" Value="http://schemas.microsoft.com/appx/manifest/uap/windows10"/>
+    <ROW XmlAttribute="Version" XmlElement="Identity" Name="Version" Flags="0" Order="3" Value="1.6.0.0"/>
+    <ROW XmlAttribute="xmlns" XmlElement="Package" Name="xmlns" Flags="0" Order="1" Value="http://schemas.microsoft.com/appx/manifest/foundation/windows10"/>
+    <ROW XmlAttribute="xmlnsbuild" XmlElement="Package" Name="xmlns:build" Flags="0" Order="2" Value="http://schemas.microsoft.com/developer/appx/2015/build"/>
+    <ROW XmlAttribute="xmlnsrescap" XmlElement="Package" Name="xmlns:rescap" Flags="0" Order="4" Value="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"/>
+    <ROW XmlAttribute="xmlnsrescap3" XmlElement="Package" Name="xmlns:rescap3" Flags="0" Order="5" Value="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities/3"/>
+    <ROW XmlAttribute="xmlnsuap" XmlElement="Package" Name="xmlns:uap" Flags="0" Order="3" Value="http://schemas.microsoft.com/appx/manifest/uap/windows10"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.GenericXmlElementComponent">
     <ROW XmlElement="Application" ParentElement="Applications" Name="Application" Order="0" Flags="0" Type="4"/>
     <ROW XmlElement="Applications" ParentElement="Package" Name="Applications" Order="3" Flags="0" Type="3"/>
+    <ROW XmlElement="Bundle" Name="Bundle" Order="0" Flags="0" Type="0"/>
     <ROW XmlElement="Capabilities" ParentElement="Package" Name="Capabilities" Order="4" Flags="0" Type="0"/>
     <ROW XmlElement="Capability" ParentElement="Capabilities" Name="Capability" Order="0" Flags="0" Type="0"/>
     <ROW XmlElement="Dependencies" ParentElement="Package" Name="Dependencies" Order="5" Flags="0" Type="0"/>
@@ -147,6 +151,7 @@
     <ROW XmlElement="VisualElements" ParentElement="Application" Name="VisualElements" Order="0" Flags="0" Type="0"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.GenericXmlFileComponent">
+    <ROW XmlFile="AppxBundleManifest.xml" FileName="AppxBundleManifest.xml" RootElement="Bundle" Flags="89" Version="1.0" Encoding="UTF-8" IndentUnits="2"/>
     <ROW XmlFile="AppxManifest.xml" FileName="AppxManifest.xml" RootElement="Package" Flags="89" Version="1.0" Encoding="UTF-8" IndentUnits="2"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiBinaryComponent">
