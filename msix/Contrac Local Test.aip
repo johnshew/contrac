@@ -1,28 +1,30 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<DOCUMENT Type="Advanced Installer" CreateVersion="17.2" version="17.2" Modules="express" RootPath="." Language="en" Id="{736315DF-BF86-4AFD-BB08-83B7A55A7AA0}">
+<DOCUMENT Type="Advanced Installer" CreateVersion="17.8" version="17.8" Modules="express" RootPath="." Language="en" Id="{F0193343-81EB-4FEB-B3EA-E8FA2ED89E5E}">
   <COMPONENT cid="caphyon.advinst.msicomp.ProjectOptionsComponent">
-    <ROW Name="Application_WorkingDir" Value="APPDIR"/>
+    <ROW Name="Application_1_WorkingDir" Value="APPDIR"/>
+    <ROW Name="AssetGenAppIdsHistory" Value="Application_1:contrac.exe"/>
     <ROW Name="AssetGenConvertedAttrNames" Value="true"/>
     <ROW Name="AssetGenDestFolderPath" Value="Generated Assets" ValueType="1"/>
+    <ROW Name="AssetGenEnableAutomaticCleanup" Value="true"/>
     <ROW Name="AssetGenScalesSavedWin10" Value="true"/>
-    <ROW Name="AssetGenScalesWin10" Value="Scale 100, Scale 125, Scale 150, Scale 200, Scale 400"/>
-    <ROW Name="AssetGenScalingMode" Value="0"/>
-    <ROW Name="AssetGenVisualAssets" Value="Small Tile, Medium Tile, Wide Tile, Large Tile, App Icon, Splash Screen, Badge Logo"/>
+    <ROW Name="AssetGenScalesWin10" Value="Scale 100"/>
+    <ROW Name="AssetGenScalingMode" Value="2"/>
+    <ROW Name="AssetGenSourceFilePath" Value="logo-simplified-v2.pdf" ValueType="1"/>
+    <ROW Name="AssetGenVisualAssets" Value="Medium Tile, App Icon"/>
     <ROW Name="AssetGenVisualAssetsSaved" Value="true"/>
-    <ROW Name="MigrationUninstallCode" Value="{FF3F6633-230E-4582-912D-90F2DD66F440}"/>
-    <ROW Name="PSFInsertTraceShim" Value="true"/>
+    <ROW Name="MigrationUninstallCode" Value="{BB6087B9-B6D6-451D-85FE-638D0A6F1B5E}"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiPropsComponent">
     <ROW Property="AI_BITMAP_DISPLAY_MODE" Value="0"/>
     <ROW Property="ALLUSERS" Value="1"/>
     <ROW Property="ARPCOMMENTS" Value="This installer database contains the logic and data required to install [|ProductName]." ValueLocId="*"/>
     <ROW Property="Manufacturer" Value="Vivitap"/>
-    <ROW Property="ProductCode" Value="1033:{AEE6A7C1-3CC1-4931-92BE-EA94DFFEBE27} " Type="16"/>
+    <ROW Property="ProductCode" Value="1033:{E855EE95-06DC-4CA8-ADCE-738B0CFE9DCD} " Type="16"/>
     <ROW Property="ProductLanguage" Value="1033"/>
     <ROW Property="ProductName" Value="Contrac"/>
     <ROW Property="ProductVersion" Value="1.0.0" Type="32"/>
     <ROW Property="SecureCustomProperties" Value="OLDPRODUCTS;AI_NEWERPRODUCTFOUND"/>
-    <ROW Property="UpgradeCode" Value="{FF3F6633-230E-4582-912D-90F2DD66F440}"/>
+    <ROW Property="UpgradeCode" Value="{BB6087B9-B6D6-451D-85FE-638D0A6F1B5E}"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiDirsComponent">
     <ROW Directory="APPDIR" Directory_Parent="TARGETDIR" DefaultDir="APPDIR:." IsPseudoRoot="1"/>
@@ -32,11 +34,12 @@
     <ROW Directory="TARGETDIR" DefaultDir="SourceDir"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiCompsComponent">
-    <ROW Component="APPDIR" ComponentId="{221AE97C-9EE2-4756-BC48-EEBE7B1EE2F8}" Directory_="APPDIR" Attributes="0"/>
-    <ROW Component="ProductInformation" ComponentId="{279A7E4A-DEEF-47F1-AD68-FA6E261511DA}" Directory_="APPDIR" Attributes="4" KeyPath="Version"/>
-    <ROW Component="SHORTCUTDIR" ComponentId="{38F446C5-3E95-43CF-BC16-77521B3F8295}" Directory_="SHORTCUTDIR" Attributes="0"/>
-    <ROW Component="Store50x50Logo.scale100.png" ComponentId="{0D0E82C8-F5ED-4CA5-9B76-EFB0AB6D5018}" Directory_="Assets" Attributes="0" KeyPath="Store50x50Logo.scale100.png" Type="0"/>
-    <ROW Component="contrac.exe" ComponentId="{02DBACC9-4F8D-40D0-A805-0031BCB06A74}" Directory_="APPDIR" Attributes="256" KeyPath="contrac.exe"/>
+    <ROW Component="APPDIR" ComponentId="{04D03153-6893-478D-A3CD-AE8631E342C4}" Directory_="APPDIR" Attributes="0"/>
+    <ROW Component="ProductInformation" ComponentId="{EBBDFEA6-B0C6-4EE1-BF5D-E1363EB54703}" Directory_="APPDIR" Attributes="4" KeyPath="Version"/>
+    <ROW Component="SHORTCUTDIR" ComponentId="{2452D0B9-D2E5-4220-A52D-5814EF7573D1}" Directory_="SHORTCUTDIR" Attributes="0"/>
+    <ROW Component="Store50x50Logo.scale100.png" ComponentId="{02834AAE-427E-4B17-A314-8B1C446B919A}" Directory_="Assets" Attributes="0" KeyPath="Store50x50Logo.scale100.png" Type="0"/>
+    <ROW Component="contrac.exe" ComponentId="{24C1225A-1646-4A6D-995F-B830B62FE587}" Directory_="APPDIR" Attributes="256" KeyPath="contrac.exe"/>
+    <ROW Component="contrac.exe_2" ComponentId="{BC54E971-A085-43B6-8496-36C73BC92D30}" Directory_="Assets" Attributes="256" KeyPath="contrac.exe_2"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiFeatsComponent">
     <ROW Feature="AiAppXAssets" Title="AiAppXAssets" Description="Description" Display="3" Level="0" Directory_="APPDIR" Attributes="0" Options="271" Builds="Build_MSIX_APPX"/>
@@ -46,17 +49,18 @@
   <COMPONENT cid="caphyon.advinst.msicomp.MsiFilesComponent">
     <ROW File="contrac.exe" Component_="contrac.exe" FileName="contrac.exe" Attributes="0" SourcePath="..\target\release\contrac.exe" SelfReg="false" DigSign="true"/>
     <ROW File="Store50x50Logo.scale100.png" Component_="Store50x50Logo.scale100.png" FileName="STORE5~1.PNG|Store50x50Logo.scale-100.png" Attributes="0" SourcePath="logo-50x50.png" SelfReg="false"/>
-    <ROW File="contrac.exeSquare44x44Logo.scale100.png" Component_="Store50x50Logo.scale100.png" FileName="CONTRA~3.PNG|contrac.exeSquare44x44Logo.scale-100.png" Attributes="0" SourcePath="logo-44x44.png" SelfReg="false"/>
-    <ROW File="contrac.exeSquare150x150Logo.scale100.png" Component_="Store50x50Logo.scale100.png" FileName="CONTRA~1.PNG|contrac.exeSquare150x150Logo.scale-100.png" Attributes="0" SourcePath="logo-150x150.png" SelfReg="false"/>
+    <ROW File="contrac.exeSquare44x44Logo.scale100.png" Component_="Store50x50Logo.scale100.png" FileName="CONTRA~4.PNG|contrac.exeSquare44x44Logo.scale-100.png" Attributes="0" SourcePath="logo-44x44-transparent-alt.png" SelfReg="false"/>
+    <ROW File="contrac.exeSquare150x150Logo.scale100.png" Component_="Store50x50Logo.scale100.png" FileName="CONTRA~2.PNG|contrac.exeSquare150x150Logo.scale-100.png" Attributes="0" SourcePath="logo-150x150-transparent.png" SelfReg="false"/>
+    <ROW File="contrac.exe_2" Component_="contrac.exe_2" FileName="contrac.exe" Attributes="0" SourcePath="..\target\release\contrac.exe" SelfReg="false" DigSign="true"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.AppXCfgComponent">
-    <ROW ID="Configuration" Order="1" ManifestFile="AppxManifest.xml" TargetOs="4" AutoUpdatesFrequency="0" AutoUpdatesOptions="0"/>
+    <ROW ID="Configuration" Order="1" ManifestFile="AppxManifest.xml" TargetOs="4" AutoUpdatesFrequency="0" AutoUpdatesOptions="0" ManifestBundleFile="AppxBundleManifest.xml"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.BootstrOptComponent">
     <ROW BootstrOptKey="GlobalOptions" DownloadFolder="[AppDataFolder][|Manufacturer]\[|ProductName]\prerequisites" Options="2"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.BuildComponent">
-    <ROW BuildKey="Build_MSIX_APPX" BuildName="Build_MSIX_APPX" BuildOrder="1" BuildType="7" PackageFolder="." Languages="en" UwpTargetDesktop="TargetDeviceFamily"/>
+    <ROW BuildKey="Build_MSIX_APPX" BuildName="Build_MSIX_APPX" BuildOrder="1" BuildType="7" PackageFolder="Build_MSIX_APPXSetupFiles" Languages="en" UwpTargetDesktop="TargetDeviceFamily" UwpAutoUpdatesFrequency="212975376"/>
     <ROW BuildKey="Build_MSIX_APPXSubBuild" BuildName="x64" BuildOrder="2" BuildType="8" ParentBuild="Build_MSIX_APPX"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.DictionaryComponent">
@@ -64,7 +68,7 @@
     <ROW Path="&lt;AI_DICTS&gt;ui_en.ail"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.DigCertStoreComponent">
-    <ROW TimeStampUrl="http://timestamp.digicert.com" SignerDescription="[|ProductName]" SignOptions="7" SignTool="0" UseSha256="1" Thumbprint="2629eb795b43d7b741b99ca69ddf9a9335c64293 Subject: TestCert_2020-12-12_17-23-11&#10;Issuer: TestCert_2020-12-12_17-23-11&#10;Valid from 12/12/2020 to 12/12/2021&#10;User\MY" Subject="CN=TestCert_2020-12-12_17-23-11"/>
+    <ROW TimeStampUrl="http://timestamp.digicert.com" SignerDescription="[|ProductName]" SignOptions="7" SignTool="0" UseSha256="1" Subject="CN=TestCert_2020-12-13_8-18-52"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.FragmentComponent">
     <ROW Fragment="CommonUI.aip" Path="&lt;AI_FRAGS&gt;CommonUI.aip"/>
@@ -81,62 +85,51 @@
     <ROW Fragment="WelcomeDlg.aip" Path="&lt;AI_THEMES&gt;classic\fragments\WelcomeDlg.aip"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.GenericXmlAttributeComponent">
-    <ROW XmlAttribute="BackgroundColor" XmlElement="VisualElements" Name="BackgroundColor" Flags="0" Order="0" Value="transparent"/>
-    <ROW XmlAttribute="Category" XmlElement="Extension" Name="Category" Flags="0" Order="0" Value="windows.desktopAppMigration"/>
-    <ROW XmlAttribute="Description" XmlElement="VisualElements" Name="Description" Flags="0" Order="1" Value="ISP Connection Tracker"/>
-    <ROW XmlAttribute="DisplayName" XmlElement="VisualElements" Name="DisplayName" Flags="0" Order="2" Value="Connection Tracker"/>
-    <ROW XmlAttribute="EntryPoint" XmlElement="Application" Name="EntryPoint" Flags="0" Order="0" Value="Windows.FullTrustApplication"/>
-    <ROW XmlAttribute="EntryPoint_1" XmlElement="Extension" Name="EntryPoint" Flags="0" Order="1" Value="Windows.FullTrustApplication"/>
-    <ROW XmlAttribute="Executable" XmlElement="Application" Name="Executable" Flags="0" Order="1" FileId="contrac.exe"/>
-    <ROW XmlAttribute="Executable_1" XmlElement="Extension" Name="Executable" Flags="0" Order="2" FileId="contrac.exe"/>
-    <ROW XmlAttribute="Id" XmlElement="Application" Name="Id" Flags="0" Order="2" Value="contrac.exe"/>
-    <ROW XmlAttribute="IgnorableNamespaces" XmlElement="Package" Name="IgnorableNamespaces" Flags="0" Order="0" Value="build uap rescap rescap3"/>
+    <ROW XmlAttribute="BackgroundColor_1" XmlElement="VisualElements_1" Name="BackgroundColor" Flags="0" Order="0" Value="transparent"/>
+    <ROW XmlAttribute="Category_1" XmlElement="Extension_1" Name="Category" Flags="0" Order="0" Value="windows.desktopAppMigration"/>
+    <ROW XmlAttribute="Description_1" XmlElement="VisualElements_1" Name="Description" Flags="0" Order="0" Value="contrac"/>
+    <ROW XmlAttribute="DisplayName_1" XmlElement="VisualElements_1" Name="DisplayName" Flags="0" Order="0" Value="contrac"/>
+    <ROW XmlAttribute="EntryPoint_1" XmlElement="Application_1" Name="EntryPoint" Flags="0" Order="0" Value="Windows.FullTrustApplication"/>
+    <ROW XmlAttribute="EntryPoint_3" XmlElement="Extension_1" Name="EntryPoint" Flags="0" Order="0" Value="Windows.FullTrustApplication"/>
+    <ROW XmlAttribute="Executable_1" XmlElement="Application_1" Name="Executable" Flags="0" Order="0" FileId="contrac.exe"/>
+    <ROW XmlAttribute="Executable_3" XmlElement="Extension_1" Name="Executable" Flags="0" Order="0" FileId="contrac.exe"/>
+    <ROW XmlAttribute="Id_1" XmlElement="Application_1" Name="Id" Flags="0" Order="0" Value="contrac.exe"/>
     <ROW XmlAttribute="Language" XmlElement="Resource" Name="Language" Flags="0" Order="0" Value="en-US"/>
     <ROW XmlAttribute="MaxVersionTested" XmlElement="TargetDeviceFamily" Name="MaxVersionTested" Flags="0" Order="0" Value="10.0.19041.0"/>
-    <ROW XmlAttribute="MinVersion" XmlElement="TargetDeviceFamily" Name="MinVersion" Flags="0" Order="1" Value="10.0.17763.0"/>
-    <ROW XmlAttribute="Name" XmlElement="Identity" Name="Name" Flags="0" Order="0" Value="16459Vivitap.Contrac"/>
+    <ROW XmlAttribute="MinVersion" XmlElement="TargetDeviceFamily" Name="MinVersion" Flags="0" Order="0" Value="10.0.17763.0"/>
+    <ROW XmlAttribute="Name" XmlElement="Identity" Name="Name" Flags="0" Order="0" Value="Vivitap.Contrac"/>
     <ROW XmlAttribute="Name_1" XmlElement="Capability" Name="Name" Flags="0" Order="0" Value="runFullTrust"/>
-    <ROW XmlAttribute="Name_2" XmlElement="TargetDeviceFamily" Name="Name" Flags="0" Order="2" Value="Windows.Desktop"/>
-    <ROW XmlAttribute="Preference" XmlElement="Rotation" Name="Preference" Flags="0" Order="0" Value="portrait"/>
-    <ROW XmlAttribute="Preference_1" XmlElement="Rotation_1" Name="Preference" Flags="0" Order="0" Value="landscape"/>
-    <ROW XmlAttribute="Preference_2" XmlElement="Rotation_2" Name="Preference" Flags="0" Order="0" Value="portraitFlipped"/>
-    <ROW XmlAttribute="Preference_3" XmlElement="Rotation_3" Name="Preference" Flags="0" Order="0" Value="landscapeFlipped"/>
-    <ROW XmlAttribute="ProcessorArchitecture" XmlElement="Identity" Name="ProcessorArchitecture" Flags="0" Order="1" Value="x64"/>
-    <ROW XmlAttribute="Publisher" XmlElement="Identity" Name="Publisher" Flags="0" Order="2" Value="CN=TestCert_2020-12-12_17-23-11"/>
+    <ROW XmlAttribute="Name_2" XmlElement="TargetDeviceFamily" Name="Name" Flags="0" Order="0" Value="Windows.Desktop"/>
+    <ROW XmlAttribute="Preference" XmlElement="Rotation" Name="Preference" Flags="0" Order="0" Value="portraitFlipped"/>
+    <ROW XmlAttribute="Preference_1" XmlElement="Rotation_1" Name="Preference" Flags="0" Order="0" Value="landscapeFlipped"/>
+    <ROW XmlAttribute="Preference_2" XmlElement="Rotation_2" Name="Preference" Flags="0" Order="0" Value="portrait"/>
+    <ROW XmlAttribute="Preference_3" XmlElement="Rotation_3" Name="Preference" Flags="0" Order="0" Value="landscape"/>
+    <ROW XmlAttribute="ProcessorArchitecture" XmlElement="Identity" Name="ProcessorArchitecture" Flags="0" Order="0" Value="x64"/>
+    <ROW XmlAttribute="Publisher" XmlElement="Identity" Name="Publisher" Flags="0" Order="0" Value="CN=TestCert_2020-12-13_8-18-52"/>
     <ROW XmlAttribute="Scale" XmlElement="Resource_1" Name="Scale" Flags="0" Order="0" Value="100"/>
-    <ROW XmlAttribute="ShortName" XmlElement="DefaultTile" Name="ShortName" Flags="0" Order="0" Value="Connection Tracker"/>
-    <ROW XmlAttribute="ShortcutPath" XmlElement="DesktopApp" Name="ShortcutPath" Flags="0" Order="0" Value="%APPDATA%\Microsoft\Windows\Start Menu\Programs\Contrac\contrac.exe.lnk"/>
-    <ROW XmlAttribute="ShortcutPath_1" XmlElement="DesktopApp_1" Name="ShortcutPath" Flags="0" Order="0" Value="%PROGRAMDATA%\Microsoft\Windows\Start Menu\Programs\Contrac\contrac.exe.lnk"/>
-    <ROW XmlAttribute="ShortcutPath_2" XmlElement="DesktopApp_2" Name="ShortcutPath" Flags="0" Order="0" Value="%USERPROFILE%\Desktop\contrac.exe.lnk"/>
-    <ROW XmlAttribute="Square150x150Logo" XmlElement="VisualElements" Name="Square150x150Logo" Flags="0" Order="3" FileId="contrac.exeSquare150x150Logo.scale100.png"/>
-    <ROW XmlAttribute="Square44x44Logo" XmlElement="VisualElements" Name="Square44x44Logo" Flags="0" Order="4" FileId="contrac.exeSquare44x44Logo.scale100.png"/>
-    <ROW XmlAttribute="Tile" XmlElement="ShowOn" Name="Tile" Flags="0" Order="0" Value="square150x150Logo"/>
-    <ROW XmlAttribute="Tile_1" XmlElement="ShowOn_1" Name="Tile" Flags="0" Order="0" Value="wide310x150Logo"/>
-    <ROW XmlAttribute="Tile_2" XmlElement="ShowOn_2" Name="Tile" Flags="0" Order="0" Value="square310x310Logo"/>
-    <ROW XmlAttribute="Version" XmlElement="Identity" Name="Version" Flags="0" Order="3" Value="1.0.0.0"/>
-    <ROW XmlAttribute="xmlns" XmlElement="Package" Name="xmlns" Flags="14" Order="1" Value="http://schemas.microsoft.com/appx/manifest/foundation/windows10"/>
-    <ROW XmlAttribute="xmlnsbuild" XmlElement="Package" Name="xmlns:build" Flags="14" Order="2" Value="http://schemas.microsoft.com/developer/appx/2015/build"/>
-    <ROW XmlAttribute="xmlnsrescap" XmlElement="Package" Name="xmlns:rescap" Flags="14" Order="4" Value="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"/>
-    <ROW XmlAttribute="xmlnsrescap3" XmlElement="Package" Name="xmlns:rescap3" Flags="14" Order="5" Value="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities/3"/>
-    <ROW XmlAttribute="xmlnsuap" XmlElement="Package" Name="xmlns:uap" Flags="14" Order="3" Value="http://schemas.microsoft.com/appx/manifest/uap/windows10"/>
+    <ROW XmlAttribute="ShortcutPath_3" XmlElement="DesktopApp_3" Name="ShortcutPath" Flags="0" Order="0" Value="%APPDATA%\Microsoft\Windows\Start Menu\Programs\Contrac\contrac.exe.lnk"/>
+    <ROW XmlAttribute="ShortcutPath_4" XmlElement="DesktopApp_4" Name="ShortcutPath" Flags="0" Order="0" Value="%PROGRAMDATA%\Microsoft\Windows\Start Menu\Programs\Contrac\contrac.exe.lnk"/>
+    <ROW XmlAttribute="ShortcutPath_5" XmlElement="DesktopApp_5" Name="ShortcutPath" Flags="0" Order="0" Value="%USERPROFILE%\Desktop\contrac.exe.lnk"/>
+    <ROW XmlAttribute="Square150x150Logo_1" XmlElement="VisualElements_1" Name="Square150x150Logo" Flags="0" Order="0" FileId="contrac.exeSquare150x150Logo.scale100.png"/>
+    <ROW XmlAttribute="Square44x44Logo_1" XmlElement="VisualElements_1" Name="Square44x44Logo" Flags="0" Order="0" FileId="contrac.exeSquare44x44Logo.scale100.png"/>
+    <ROW XmlAttribute="Version" XmlElement="Identity" Name="Version" Flags="0" Order="0" Value="1.0.0.0"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.GenericXmlElementComponent">
-    <ROW XmlElement="Application" ParentElement="Applications" Name="Application" Order="0" Flags="0" Type="4"/>
+    <ROW XmlElement="Application_1" ParentElement="Applications" Name="Application" Order="0" Flags="0" Type="4"/>
     <ROW XmlElement="Applications" ParentElement="Package" Name="Applications" Order="3" Flags="0" Type="3"/>
+    <ROW XmlElement="Bundle" Name="Bundle" Order="0" Flags="0" Type="0"/>
     <ROW XmlElement="Capabilities" ParentElement="Package" Name="Capabilities" Order="4" Flags="0" Type="0"/>
     <ROW XmlElement="Capability" ParentElement="Capabilities" Name="Capability" Order="0" Flags="0" Type="0"/>
-    <ROW XmlElement="DefaultTile" ParentElement="VisualElements" Name="DefaultTile" Order="1" Flags="0" Type="0"/>
     <ROW XmlElement="Dependencies" ParentElement="Package" Name="Dependencies" Order="5" Flags="0" Type="0"/>
-    <ROW XmlElement="Description" ParentElement="Properties" Name="Description" Order="3" Flags="0" Text="Internet Connection Tracker" Type="0"/>
-    <ROW XmlElement="DesktopApp" ParentElement="DesktopAppMigration" Name="DesktopApp" Order="0" Flags="0" Type="0"/>
-    <ROW XmlElement="DesktopAppMigration" ParentElement="Extension" Name="DesktopAppMigration" Order="0" Flags="0" Type="0"/>
-    <ROW XmlElement="DesktopApp_1" ParentElement="DesktopAppMigration" Name="DesktopApp" Order="1" Flags="0" Type="0"/>
-    <ROW XmlElement="DesktopApp_2" ParentElement="DesktopAppMigration" Name="DesktopApp" Order="2" Flags="0" Type="0"/>
+    <ROW XmlElement="DesktopAppMigration_1" ParentElement="Extension_1" Name="DesktopAppMigration" Order="0" Flags="0" Type="0"/>
+    <ROW XmlElement="DesktopApp_3" ParentElement="DesktopAppMigration_1" Name="DesktopApp" Order="0" Flags="0" Type="0"/>
+    <ROW XmlElement="DesktopApp_4" ParentElement="DesktopAppMigration_1" Name="DesktopApp" Order="1" Flags="0" Type="0"/>
+    <ROW XmlElement="DesktopApp_5" ParentElement="DesktopAppMigration_1" Name="DesktopApp" Order="2" Flags="0" Type="0"/>
     <ROW XmlElement="DisplayName" ParentElement="Properties" Name="DisplayName" Order="1" Flags="0" Text="Contrac" Type="0"/>
-    <ROW XmlElement="Extension" ParentElement="Extensions" Name="Extension" Order="0" Flags="0" Type="55"/>
-    <ROW XmlElement="Extensions" ParentElement="Application" Name="Extensions" Order="1" Flags="0" Type="0"/>
+    <ROW XmlElement="Extension_1" ParentElement="Extensions_1" Name="Extension" Order="0" Flags="0" Type="55"/>
+    <ROW XmlElement="Extensions_1" ParentElement="Application_1" Name="Extensions" Order="1" Flags="0" Type="0"/>
     <ROW XmlElement="Identity" ParentElement="Package" Name="Identity" Order="0" Flags="0" Type="0"/>
-    <ROW XmlElement="InitialRotationPreference" ParentElement="VisualElements" Name="InitialRotationPreference" Order="0" Flags="0" Type="0"/>
+    <ROW XmlElement="InitialRotationPreference_1" ParentElement="VisualElements_1" Name="InitialRotationPreference" Order="0" Flags="0" Type="0"/>
     <ROW XmlElement="Logo" ParentElement="Properties" Name="Logo" Order="2" Flags="0" FileId="Store50x50Logo.scale100.png" Type="0"/>
     <ROW XmlElement="Package" Name="Package" Order="0" Flags="0" Type="6"/>
     <ROW XmlElement="Properties" ParentElement="Package" Name="Properties" Order="2" Flags="0" Type="0"/>
@@ -144,18 +137,15 @@
     <ROW XmlElement="Resource" ParentElement="Resources" Name="Resource" Order="0" Flags="0" Type="0"/>
     <ROW XmlElement="Resource_1" ParentElement="Resources" Name="Resource" Order="1" Flags="0" Type="0"/>
     <ROW XmlElement="Resources" ParentElement="Package" Name="Resources" Order="1" Flags="0" Type="0"/>
-    <ROW XmlElement="Rotation" ParentElement="InitialRotationPreference" Name="Rotation" Order="0" Flags="0" Type="0"/>
-    <ROW XmlElement="Rotation_1" ParentElement="InitialRotationPreference" Name="Rotation" Order="1" Flags="0" Type="0"/>
-    <ROW XmlElement="Rotation_2" ParentElement="InitialRotationPreference" Name="Rotation" Order="2" Flags="0" Type="0"/>
-    <ROW XmlElement="Rotation_3" ParentElement="InitialRotationPreference" Name="Rotation" Order="3" Flags="0" Type="0"/>
-    <ROW XmlElement="ShowNameOnTiles" ParentElement="DefaultTile" Name="ShowNameOnTiles" Order="0" Flags="0" Type="0"/>
-    <ROW XmlElement="ShowOn" ParentElement="ShowNameOnTiles" Name="ShowOn" Order="0" Flags="0" Type="0"/>
-    <ROW XmlElement="ShowOn_1" ParentElement="ShowNameOnTiles" Name="ShowOn" Order="1" Flags="0" Type="0"/>
-    <ROW XmlElement="ShowOn_2" ParentElement="ShowNameOnTiles" Name="ShowOn" Order="2" Flags="0" Type="0"/>
+    <ROW XmlElement="Rotation" ParentElement="InitialRotationPreference_1" Name="Rotation" Order="2" Flags="0" Type="0"/>
+    <ROW XmlElement="Rotation_1" ParentElement="InitialRotationPreference_1" Name="Rotation" Order="3" Flags="0" Type="0"/>
+    <ROW XmlElement="Rotation_2" ParentElement="InitialRotationPreference_1" Name="Rotation" Order="0" Flags="0" Type="0"/>
+    <ROW XmlElement="Rotation_3" ParentElement="InitialRotationPreference_1" Name="Rotation" Order="1" Flags="0" Type="0"/>
     <ROW XmlElement="TargetDeviceFamily" ParentElement="Dependencies" Name="TargetDeviceFamily" Order="0" Flags="0" Type="28"/>
-    <ROW XmlElement="VisualElements" ParentElement="Application" Name="VisualElements" Order="0" Flags="0" Type="0"/>
+    <ROW XmlElement="VisualElements_1" ParentElement="Application_1" Name="VisualElements" Order="0" Flags="0" Type="0"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.GenericXmlFileComponent">
+    <ROW XmlFile="AppxBundleManifest.xml" FileName="AppxBundleManifest.xml" RootElement="Bundle" Flags="89" Version="1.0" Encoding="UTF-8" IndentUnits="2"/>
     <ROW XmlFile="AppxManifest.xml" FileName="AppxManifest.xml" RootElement="Package" Flags="89" Version="1.0" Encoding="UTF-8" IndentUnits="2"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiBinaryComponent">
@@ -209,6 +199,7 @@
     <ROW Feature_="MainFeature" Component_="contrac.exe"/>
     <ROW Feature_="MainFeature" Component_="SHORTCUTDIR"/>
     <ROW Feature_="AiAppXAssets" Component_="Store50x50Logo.scale100.png"/>
+    <ROW Feature_="MainFeature" Component_="contrac.exe_2"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiInstExSeqComponent">
     <ROW Action="AI_DOWNGRADE" Condition="AI_NEWERPRODUCTFOUND AND (UILevel &lt;&gt; 5)" Sequence="210"/>
@@ -240,6 +231,6 @@
     <ROW UpgradeCode="[|UpgradeCode]" VersionMin="[|ProductVersion]" Attributes="2" ActionProperty="AI_NEWERPRODUCTFOUND"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.SynchronizedFolderComponent">
-    <ROW Directory_="APPDIR" SourcePath="..\target\release" Feature="MainFeature" IncludePattern="contrac.exe" ExcludePattern="*~|#*#|%*%|._|CVS|.cvsignore|SCCS|vssver.scc|mssccprj.scc|vssver2.scc|.svn|.DS_Store|\deps|\.fingerprint|\build|\examples|\incremental" ExcludeFlags="6"/>
+    <ROW Directory_="APPDIR" SourcePath="..\target\release" Feature="MainFeature" IncludePattern="contrac.exe" ExcludePattern="*~|#*#|%*%|._|CVS|.cvsignore|SCCS|vssver.scc|mssccprj.scc|vssver2.scc|.svn|.DS_Store|\*" ExcludeFlags="6"/>
   </COMPONENT>
 </DOCUMENT>
