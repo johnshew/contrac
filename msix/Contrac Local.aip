@@ -64,7 +64,7 @@
     <ROW Path="&lt;AI_DICTS&gt;ui_en.ail"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.DigCertStoreComponent">
-    <ROW TimeStampUrl="http://timestamp.digicert.com" SignerDescription="[|ProductName]" SignOptions="0" SignTool="0" UseSha256="1" Subject="CN=TestCert_2020-12-13_8-18-52"/>
+    <ROW TimeStampUrl="http://timestamp.digicert.com" SignerDescription="[|ProductName]" SignOptions="7" SignTool="0" UseSha256="1" Subject="CN=TestCert_2020-12-13_8-18-52"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.FragmentComponent">
     <ROW Fragment="CommonUI.aip" Path="&lt;AI_FRAGS&gt;CommonUI.aip"/>
@@ -102,14 +102,14 @@
     <ROW XmlAttribute="Preference_2" XmlElement="Rotation_2" Name="Preference" Flags="0" Order="0" Value="portraitFlipped"/>
     <ROW XmlAttribute="Preference_3" XmlElement="Rotation_3" Name="Preference" Flags="0" Order="0" Value="landscapeFlipped"/>
     <ROW XmlAttribute="ProcessorArchitecture" XmlElement="Identity" Name="ProcessorArchitecture" Flags="0" Order="1" Value="x64"/>
-    <ROW XmlAttribute="Publisher" XmlElement="Identity" Name="Publisher" Flags="0" Order="2" Value="CN=10CA1446-242A-41D3-B734-1F7976035DD4"/>
+    <ROW XmlAttribute="Publisher" XmlElement="Identity" Name="Publisher" Flags="0" Order="2" Value="CN=TestCert_2020-12-13_8-18-52"/>
     <ROW XmlAttribute="Scale" XmlElement="Resource_1" Name="Scale" Flags="0" Order="0" Value="100"/>
     <ROW XmlAttribute="ShortcutPath" XmlElement="DesktopApp" Name="ShortcutPath" Flags="0" Order="0" Value="%APPDATA%\Microsoft\Windows\Start Menu\Programs\Contrac\contrac.exe.lnk"/>
     <ROW XmlAttribute="ShortcutPath_1" XmlElement="DesktopApp_1" Name="ShortcutPath" Flags="0" Order="0" Value="%PROGRAMDATA%\Microsoft\Windows\Start Menu\Programs\Contrac\contrac.exe.lnk"/>
     <ROW XmlAttribute="ShortcutPath_2" XmlElement="DesktopApp_2" Name="ShortcutPath" Flags="0" Order="0" Value="%USERPROFILE%\Desktop\contrac.exe.lnk"/>
     <ROW XmlAttribute="Square150x150Logo" XmlElement="VisualElements" Name="Square150x150Logo" Flags="0" Order="3" FileId="contrac.exeSquare150x150Logo.scale100.png"/>
     <ROW XmlAttribute="Square44x44Logo" XmlElement="VisualElements" Name="Square44x44Logo" Flags="0" Order="4" FileId="contrac.exeSquare44x44Logo.scale100.png"/>
-    <ROW XmlAttribute="Version" XmlElement="Identity" Name="Version" Flags="0" Order="3" Value="1.6.1.0"/>
+    <ROW XmlAttribute="Version" XmlElement="Identity" Name="Version" Flags="0" Order="3" Value="1.6.0.0"/>
     <ROW XmlAttribute="xmlns" XmlElement="Package" Name="xmlns" Flags="0" Order="1" Value="http://schemas.microsoft.com/appx/manifest/foundation/windows10"/>
     <ROW XmlAttribute="xmlnsbuild" XmlElement="Package" Name="xmlns:build" Flags="0" Order="2" Value="http://schemas.microsoft.com/developer/appx/2015/build"/>
     <ROW XmlAttribute="xmlnsrescap" XmlElement="Package" Name="xmlns:rescap" Flags="0" Order="4" Value="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"/>

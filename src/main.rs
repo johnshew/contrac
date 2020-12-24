@@ -2,6 +2,7 @@
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, Duration, Local};
+use directories::UserDirs;
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::fs::File;
@@ -257,7 +258,8 @@ impl App {
                         "was disconnected for {} seconds",
                         (utils::timestamp_to_datetime(timestamp as u128)
                             - data.timeout_start.unwrap())
-                        .num_milliseconds() as f32 / 1_000 as f32
+                        .num_milliseconds() as f32
+                            / 1_000 as f32
                     ));
                 }
                 data.last_sample_display_timeout_notification = false;
@@ -320,7 +322,7 @@ impl App {
             }
         }
 
-        if self.data.borrow().last_saved + Duration::minutes(AUTO_SAVE_MINS) > datetime  {
+        if (self.data.borrow().last_saved + Duration::minutes(AUTO_SAVE_MINS)) < datetime {
             if let Err(err) = self.write_timeouts_log() {
                 self.app_log_write(&format!("{}", err));
             }
@@ -370,8 +372,15 @@ impl App {
                 Nominal,
             };
             let data = self.data.borrow();
-            let mut file = File::create(format!("{} timeouts.log", &data.log_identifier))
-                .context(format!("unable to open '{}'", &data.log_identifier))?;
+            let path = UserDirs::new()
+                .unwrap()
+                .document_dir()
+                .unwrap()
+                .join(format!("contrac {} timeouts.log", &data.log_identifier));
+            let full_path = String::from(path.to_str().unwrap());
+            // self.app_log_write(&format!("writing to {}", full_path));
+            let mut file = File::create(&path) // was format!("{} timeouts.log", documents.join(path: P), &data.log_identifier))
+                    .context(format!("unable to open '{:?}'", &full_path))?;
             let mut timeout_status = TimeoutTracker::Nominal;
             for (_address, time, rtt) in &data.samples {
                 if rtt.is_some() {
