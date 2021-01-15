@@ -9,24 +9,28 @@ use nwd::NwgPartial;
 
 use super::stats;
 use super::utils;
+use super::callbacks::Dispatcher;
 use crate::Sample;
 
-const GRAPH_INTERVAL_MILLIS : i64 = 1000;
 
-pub struct GraphData {
+const GRAPH_INTERVAL_MILLIS: i64 = 1000;
+
+pub struct GraphData<'a> {
     bar_count: u16,
     min: u16,
     max: u16,
     bars: Vec<stats::Stats<u16>>,
+    events: Dispatcher<'a>,
 }
 
-impl Default for GraphData {
+impl<'a> Default for GraphData<'a> {
     fn default() -> Self {
         GraphData {
             bar_count: 0,
             min: u16::MAX,
             max: 0,
             bars: Vec::new(),
+            events: Dispatcher::new(),
         }
     }
 }
@@ -48,14 +52,13 @@ pub struct GraphUi {
 
     #[nwg_control(parent: outer_frame, size: (50,25), text: "30", limit:3,  flags: "NUMBER")]
     #[nwg_events( OnTextInput: [GraphUi::on_min_max_click])]
-    max_select: nwg::TextInput,
+    pub max_select: nwg::TextInput,
 
     #[nwg_control(parent: outer_frame, size: (50,25), text: "0", limit:3, flags: "NUMBER")]
     #[nwg_events( OnTextInput: [GraphUi::on_min_max_click])]
-    min_select: nwg::TextInput,
+    pub min_select: nwg::TextInput,
 
     bars: RefCell<Vec<nwg::ImageFrame>>,
-
     // tooltips: nwg::Tooltip,
 }
 
@@ -115,6 +118,11 @@ impl GraphUi {
             data.min = min;
             data.max = max;
         }
+    }
+
+    pub fn get_min_max(&self) -> (u16, u16) {
+        let data = self.data.borrow();
+        (data.min, data.max)
     }
 
     pub fn set_values(&self, samples: &VecDeque<Sample>) {
