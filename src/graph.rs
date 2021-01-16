@@ -47,7 +47,7 @@ pub struct GraphUi {
     #[nwg_events( OnResize: [GraphUi::on_resize])]
     outer_frame: nwg::Frame,
 
-    #[nwg_control(parent: outer_frame, flags: "VISIBLE|BORDER")]
+    #[nwg_control(parent: outer_frame, flags: "VISIBLE")]
     frame: nwg::Frame,
 
     #[nwg_control(parent: outer_frame, size: (50,25), text: "30", limit:3,  flags: "NUMBER")]
@@ -172,14 +172,20 @@ impl GraphUi {
     }
 
     pub fn on_resize(&self) {
-        self.frame.set_visible(true);
-        self.frame.set_position(0, 25 + 3);
-
+        
         let (ow, oh) = self.outer_frame.size();
-        self.frame.set_size(ow + 1, oh - (3 + 25 + 1 + 25 + 1 + 1));
+
+        let (_max_w, max_h) = self.max_select.size();
+        let (_min_w, min_h) = self.min_select.size();
+        self.frame.set_size(ow + 1, oh - max_h - min_h);
+        self.frame.set_visible(true);
+        self.frame.set_position(0, max_h as i32);
 
         let (w, h) = self.frame.size();
-        let (_l, _t) = self.frame.position();
+        self.max_select.set_position(0, 0);
+        self.max_select.set_size(ow + 1, max_h);
+        self.min_select.set_position(0, (oh - min_h) as i32);
+        self.min_select.set_size(ow + 1, min_h);
 
         let data_len = { self.data.borrow().bars.len() };
 
@@ -227,13 +233,6 @@ impl GraphUi {
             } else {
                 graph_bar.set_visible(false);
             }
-        }
-        let (_, ch) = self.max_select.size();
-        self.max_select.set_position(0, 0);
-        self.max_select.set_size(ow + 1, ch);
-
-        let (_, ch) = self.min_select.size();
-        self.min_select.set_position(0, (oh - ch) as i32);
-        self.min_select.set_size(ow + 1, ch);
+        }     
     }
 }
