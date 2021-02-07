@@ -3,7 +3,7 @@ pub struct Callbacks<'b, T, R: Copy + Clone> {
 }
 
 
-use anyhow::{Context, Result};
+// use anyhow::{Context, Result};
 
 impl<'b, T, R: Copy + Clone> Callbacks<'b, T, R> {
     pub fn new() -> Callbacks<'b, T, R> {
@@ -26,11 +26,10 @@ impl<'b, T, R: Copy + Clone> Callbacks<'b, T, R> {
         }
         results
     }
-
 }
 
 pub struct NotifyCallback<'a, T> {
-    callbacks: Vec<Box<dyn for<'b> FnMut(&'b mut T) -> Result<()> +'a>>,
+    callbacks: Vec<Box<dyn for<'b> FnMut(&'b mut T) -> () +'a>>,
 }
 
 impl<'a, 'b, T: 'b> NotifyCallback<'a, T> {
@@ -41,21 +40,20 @@ impl<'a, 'b, T: 'b> NotifyCallback<'a, T> {
     }
     pub fn add< F>(&mut self, callback: F)
     where
-        F: for<'z> FnMut(&'z mut T) -> Result<()> +'a,
+        F: for<'z> FnMut(&'z mut T) -> () +'a,
     {
         self.callbacks.push(Box::new(callback));
     }
 
-    pub fn invoke(&mut  self, t: &mut T) -> Result<()> {
+    pub fn invoke(&mut  self, t: &mut T) -> () {
         for f in &mut self.callbacks {
            let result = (f)( t);
         }
-        Ok(())
+        ()
     }
 }
 
-type NotifyCallback2<'a, T> = Callbacks<'a, T, Result<()>>;
-
+type NotifyCallback2<'a, T> = Callbacks<'a, T, ()>;
 
 #[cfg(test)]
 #[test]
@@ -81,7 +79,7 @@ fn does_it_work() {
         }
         pub fn set_value(&mut self, v: i32) {
             self.data.value = v;
-            self.value_modified.invoke(&mut self.data).unwrap()
+            self.value_modified.invoke(&mut self.data);
         }
         pub fn get_value(&self) -> Inner {
            self.data
@@ -91,16 +89,13 @@ fn does_it_work() {
     let mut test = Outer::new();
     test.value_modified.add(|_| {
         println!("Hello ");
-        Ok(())
     });
     test.value_modified.add(|_| {
         println!("World!");
-        Ok(())
     });
     test.value_modified.add(|stuff| {
         stuff.count += increment; // closure references checked by rust
         println!("Modified: {:?}", stuff);
-        Ok(())
     });
 
     println!("Initial: {:?}", test.get_value());
