@@ -9,28 +9,28 @@ use nwd::NwgPartial;
 
 use super::stats;
 use super::utils;
-use super::callbacks::Dispatcher;
+use super::callbacks::Callbacks;
 use crate::Sample;
 
 
 const GRAPH_INTERVAL_MILLIS: i64 = 1000;
 
-pub struct GraphData<'a> {
+pub struct GraphData {
     bar_count: u16,
     min: u16,
     max: u16,
     bars: Vec<stats::Stats<u16>>,
-    events: Dispatcher<'a>,
+    events: Callbacks<'static, (), ()>,
 }
 
-impl<'a> Default for GraphData<'a> {
+impl<'a> Default for GraphData {
     fn default() -> Self {
         GraphData {
             bar_count: 0,
             min: u16::MAX,
             max: 0,
             bars: Vec::new(),
-            events: Dispatcher::new(),
+            events: Callbacks::new(),
         }
     }
 }
