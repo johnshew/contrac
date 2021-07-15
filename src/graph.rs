@@ -23,7 +23,7 @@ pub struct GraphData {
     events: Callbacks<'static, (), ()>,
 }
 
-impl<'a> Default for GraphData {
+impl Default for GraphData {
     fn default() -> Self {
         GraphData {
             bar_count: 0,

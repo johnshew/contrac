@@ -32,6 +32,7 @@ mod callbacks;
 
 use crate::graph::*;
 
+const MIN_PING_TIME_MILLIS: u32 = 1010;
 const GRAPH_REFRESH_MILLIS: i64 = 250;
 const MIN_TIMEOUT_INTERVAL_MILLIS: i64 = 1000;
 const AUTO_SAVE_MINS: i64 = 5;
@@ -402,7 +403,7 @@ impl App {
             enum TimeoutTracker {
                 Active { start: DateTime<Local> },
                 Nominal,
-            };
+            }
             let data = self.data.borrow();
             let path = UserDirs::new()
                 .unwrap()
@@ -494,10 +495,10 @@ fn main() -> Result<()> {
     nwg::Font::set_global_family("Segoe UI").context("Failed to set default font")?;
     let app = App::build_ui(Default::default()).context("Failed to build UI")?;
     let _pingers = vec![
-        app.spawn_pinger("1.1.1.2", 1010)?,        // CloudFlare
-        app.spawn_pinger("8.8.8.8", 1010)?,        // Google
-        app.spawn_pinger("208.67.222.222", 1010)?, // Cisco OpenDNS
-        app.spawn_pinger("9.9.9.9", 1010)?,        // Quad9
+        app.spawn_pinger("1.1.1.2", MIN_PING_TIME_MILLIS)?,        // CloudFlare
+        app.spawn_pinger("8.8.8.8", MIN_PING_TIME_MILLIS)?,        // Google
+        app.spawn_pinger("208.67.222.222", MIN_PING_TIME_MILLIS)?, // Cisco OpenDNS
+        app.spawn_pinger("9.9.9.9", MIN_PING_TIME_MILLIS)?,        // Quad9
     ];
     nwg::dispatch_thread_events();
     Ok(())
