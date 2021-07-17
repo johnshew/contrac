@@ -1,6 +1,6 @@
 #![windows_subsystem = "windows"]
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Duration, Local};
 use directories::UserDirs;
 use std::cell::RefCell;
@@ -26,9 +26,9 @@ use nwg::stretch::{
 use nwg::NativeUi;
 
 mod graph;
+mod observables;
 mod stats;
 mod utils;
-mod callbacks;
 
 use crate::graph::*;
 
@@ -36,7 +36,7 @@ const MIN_PING_TIME_MILLIS: u32 = 1010;
 const GRAPH_REFRESH_MILLIS: i64 = 250;
 const MIN_TIMEOUT_INTERVAL_MILLIS: i64 = 1000;
 const AUTO_SAVE_MINS: i64 = 5;
-const GRAPH_BAR_COUNT : u16 = 40;
+const GRAPH_BAR_COUNT: u16 = 40;
 
 pub type Sample = (IpAddr, u128, Option<u16>);
 
@@ -46,6 +46,7 @@ pub struct AppData {
     min: u16,
     max: u16,
     samples: VecDeque<Sample>,
+    registry_loaded: bool,
     graph_min: u16,
     graph_max: u16,
     last_full_update: DateTime<Local>,
@@ -68,6 +69,7 @@ impl Default for AppData {
             min: u16::MAX,
             max: 0,
             samples: VecDeque::new(),
+            registry_loaded: false,
             graph_min: 0,
             graph_max: 100,
             last_full_update: Local::now(),
@@ -214,11 +216,13 @@ pub struct App {
 
 impl App {
     fn on_window_init(&self) {
-        let _ = self.load_registry_settings();
-        {
+        let _result = self.load_registry_settings();
+        self.data.borrow_mut().registry_loaded = true;        
+        let (min, max) = {
             let data = self.data.borrow();
-            self.graph.init(GRAPH_BAR_COUNT, data.graph_min, data.graph_max);
-        }
+            (data.graph_min, data.graph_max)
+        };
+        self.graph.init(GRAPH_BAR_COUNT, min, max);
         self.graph.on_resize();
         let message = &format!(
             "Started at {}",
@@ -228,31 +232,42 @@ impl App {
     }
 
     fn load_registry_settings(&self) -> Result<()> {
-        let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-        let subkey = hklm.open_subkey("SOFTWARE\\Microsoft\\Vivitap\\Contrac")?;
+        let reg = RegKey::predef(HKEY_CURRENT_USER);
+        let subkey = reg.open_subkey("SOFTWARE\\Vivitap\\Contrac")?;
         let min: u32 = subkey.get_value("GraphMin")?;
         let max: u32 = subkey.get_value("GraphMax")?;
         let mut data = self.data.borrow_mut();
-        data.min = min as u16;
-        data.max = max as u16;
+        data.graph_min = min as u16;
+        data.graph_max = max as u16;
         Ok(())
     }
 
     fn save_registry_settings(&self) -> Result<()> {
-        let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-        let subkey = hklm.open_subkey("SOFTWARE\\Microsoft\\Vivitap\\Contrac")?;
         let data = self.data.borrow();
-        subkey.set_value("GraphMin", &(data.min as u32))?;
-        subkey.set_value("GraphMax", &(data.max as u32))?;
+        if !data.registry_loaded {
+            bail!("Registry not loaded yet");
+        }
+        let reg = RegKey::predef(HKEY_CURRENT_USER);
+        let result = reg.create_subkey("SOFTWARE\\Vivitap\\Contrac");
+        let subkey = match result {
+            Ok((key, _disposition)) => key,
+            Err(e) => panic!("Problem creating the file: {:?}", e),
+        };
+        subkey.set_value("GraphMin", &(data.graph_min as u32))?;
+        subkey.set_value("GraphMax", &(data.graph_max as u32))?;
         Ok(())
     }
 
     fn on_graph_min_max_change(&self) {
-       let (min, max) = self.graph.get_min_max();
-       let data = self.data.borrow();
-       if min != data.min || max != data.max {
+        let (min, max) = self.graph.get_min_max();
+        {
+            let mut data = self.data.borrow_mut();
+            if min != data.graph_min || max != data.graph_max {
+                data.graph_min = min;
+                data.graph_max = max;
+            }
+        }
         let _ = self.save_registry_settings();
-       }
     }
 
     fn app_log_write(&self, message: &str) {
@@ -495,10 +510,10 @@ fn main() -> Result<()> {
     nwg::Font::set_global_family("Segoe UI").context("Failed to set default font")?;
     let app = App::build_ui(Default::default()).context("Failed to build UI")?;
     let _pingers = vec![
-        app.spawn_pinger("1.1.1.2", MIN_PING_TIME_MILLIS)?,        // CloudFlare
-        app.spawn_pinger("8.8.8.8", MIN_PING_TIME_MILLIS)?,        // Google
+        app.spawn_pinger("1.1.1.2", MIN_PING_TIME_MILLIS)?, // CloudFlare
+        app.spawn_pinger("8.8.8.8", MIN_PING_TIME_MILLIS)?, // Google
         app.spawn_pinger("208.67.222.222", MIN_PING_TIME_MILLIS)?, // Cisco OpenDNS
-        app.spawn_pinger("9.9.9.9", MIN_PING_TIME_MILLIS)?,        // Quad9
+        app.spawn_pinger("9.9.9.9", MIN_PING_TIME_MILLIS)?, // Quad9
     ];
     nwg::dispatch_thread_events();
     Ok(())
