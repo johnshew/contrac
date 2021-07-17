@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<DOCUMENT Type="Advanced Installer" CreateVersion="17.2" version="17.8" Modules="express" RootPath="." Language="en" Id="{736315DF-BF86-4AFD-BB08-83B7A55A7AA0}">
+<DOCUMENT Type="Advanced Installer" CreateVersion="17.2" version="18.4" Modules="express" RootPath="." Language="en" Id="{736315DF-BF86-4AFD-BB08-83B7A55A7AA0}">
   <COMPONENT cid="caphyon.advinst.msicomp.ProjectOptionsComponent">
     <ROW Name="Application_WorkingDir" Value="APPDIR"/>
     <ROW Name="AssetGenConvertedAttrNames" Value="true"/>
@@ -14,6 +14,7 @@
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiPropsComponent">
     <ROW Property="AI_BITMAP_DISPLAY_MODE" Value="0"/>
+    <ROW Property="AI_CURRENT_YEAR" Value="2021" ValueLocId="-"/>
     <ROW Property="ALLUSERS" Value="1"/>
     <ROW Property="ARPCOMMENTS" Value="This installer database contains the logic and data required to install [|ProductName]." ValueLocId="*"/>
     <ROW Property="Manufacturer" Value="Vivitap"/>
@@ -33,6 +34,8 @@
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiCompsComponent">
     <ROW Component="APPDIR" ComponentId="{221AE97C-9EE2-4756-BC48-EEBE7B1EE2F8}" Directory_="APPDIR" Attributes="0"/>
+    <ROW Component="GraphMax" ComponentId="{4148C2CB-C839-4755-BCA1-DC3DFCAC648D}" Directory_="APPDIR" Attributes="4" KeyPath="GraphMax"/>
+    <ROW Component="GraphMin" ComponentId="{2672DD9E-588A-495A-B786-5EA942BAD4D5}" Directory_="APPDIR" Attributes="4" KeyPath="GraphMin"/>
     <ROW Component="ProductInformation" ComponentId="{279A7E4A-DEEF-47F1-AD68-FA6E261511DA}" Directory_="APPDIR" Attributes="4" KeyPath="Version"/>
     <ROW Component="SHORTCUTDIR" ComponentId="{38F446C5-3E95-43CF-BC16-77521B3F8295}" Directory_="SHORTCUTDIR" Attributes="0"/>
     <ROW Component="Store50x50Logo.scale100.png" ComponentId="{0D0E82C8-F5ED-4CA5-9B76-EFB0AB6D5018}" Directory_="Assets" Attributes="0" KeyPath="Store50x50Logo.scale100.png" Type="0"/>
@@ -90,7 +93,7 @@
     <ROW XmlAttribute="Executable" XmlElement="Application" Name="Executable" Flags="0" Order="1" FileId="contrac.exe"/>
     <ROW XmlAttribute="Executable_1" XmlElement="Extension" Name="Executable" Flags="0" Order="2" FileId="contrac.exe"/>
     <ROW XmlAttribute="Id" XmlElement="Application" Name="Id" Flags="0" Order="2" Value="contrac.exe"/>
-    <ROW XmlAttribute="IgnorableNamespaces" XmlElement="Package" Name="IgnorableNamespaces" Flags="0" Order="0" Value="build uap rescap rescap3"/>
+    <ROW XmlAttribute="IgnorableNamespaces" XmlElement="Package" Name="IgnorableNamespaces" Flags="0" Order="0" Value="rescap rescap3 uap"/>
     <ROW XmlAttribute="Language" XmlElement="Resource" Name="Language" Flags="0" Order="0" Value="en-US"/>
     <ROW XmlAttribute="MaxVersionTested" XmlElement="TargetDeviceFamily" Name="MaxVersionTested" Flags="0" Order="0" Value="10.0.19041.0"/>
     <ROW XmlAttribute="MinVersion" XmlElement="TargetDeviceFamily" Name="MinVersion" Flags="0" Order="1" Value="10.0.17763.0"/>
@@ -109,20 +112,19 @@
     <ROW XmlAttribute="ShortcutPath_2" XmlElement="DesktopApp_2" Name="ShortcutPath" Flags="0" Order="0" Value="%USERPROFILE%\Desktop\contrac.exe.lnk"/>
     <ROW XmlAttribute="Square150x150Logo" XmlElement="VisualElements" Name="Square150x150Logo" Flags="0" Order="3" FileId="contrac.exeSquare150x150Logo.scale100.png"/>
     <ROW XmlAttribute="Square44x44Logo" XmlElement="VisualElements" Name="Square44x44Logo" Flags="0" Order="4" FileId="contrac.exeSquare44x44Logo.scale100.png"/>
-    <ROW XmlAttribute="Version" XmlElement="Identity" Name="Version" Flags="0" Order="3" Value="1.6.2.0"/>
+    <ROW XmlAttribute="Version" XmlElement="Identity" Name="Version" Flags="0" Order="3" Value="1.7.0.0"/>
     <ROW XmlAttribute="xmlns" XmlElement="Package" Name="xmlns" Flags="0" Order="1" Value="http://schemas.microsoft.com/appx/manifest/foundation/windows10"/>
-    <ROW XmlAttribute="xmlnsbuild" XmlElement="Package" Name="xmlns:build" Flags="0" Order="2" Value="http://schemas.microsoft.com/developer/appx/2015/build"/>
     <ROW XmlAttribute="xmlnsrescap" XmlElement="Package" Name="xmlns:rescap" Flags="0" Order="4" Value="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"/>
     <ROW XmlAttribute="xmlnsrescap3" XmlElement="Package" Name="xmlns:rescap3" Flags="0" Order="5" Value="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities/3"/>
     <ROW XmlAttribute="xmlnsuap" XmlElement="Package" Name="xmlns:uap" Flags="0" Order="3" Value="http://schemas.microsoft.com/appx/manifest/uap/windows10"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.GenericXmlElementComponent">
     <ROW XmlElement="Application" ParentElement="Applications" Name="Application" Order="0" Flags="0" Type="4"/>
-    <ROW XmlElement="Applications" ParentElement="Package" Name="Applications" Order="3" Flags="0" Type="3"/>
+    <ROW XmlElement="Applications" ParentElement="Package" Name="Applications" Order="5" Flags="0" Type="3"/>
     <ROW XmlElement="Bundle" Name="Bundle" Order="0" Flags="0" Type="0"/>
     <ROW XmlElement="Capabilities" ParentElement="Package" Name="Capabilities" Order="4" Flags="0" Type="0"/>
     <ROW XmlElement="Capability" ParentElement="Capabilities" Name="Capability" Order="0" Flags="0" Type="0"/>
-    <ROW XmlElement="Dependencies" ParentElement="Package" Name="Dependencies" Order="5" Flags="0" Type="0"/>
+    <ROW XmlElement="Dependencies" ParentElement="Package" Name="Dependencies" Order="3" Flags="0" Type="0"/>
     <ROW XmlElement="Description" ParentElement="Properties" Name="Description" Order="3" Flags="0" Text="Internet Connection Tracker" Type="0"/>
     <ROW XmlElement="DesktopApp" ParentElement="DesktopAppMigration" Name="DesktopApp" Order="0" Flags="0" Type="0"/>
     <ROW XmlElement="DesktopAppMigration" ParentElement="Extension" Name="DesktopAppMigration" Order="0" Flags="0" Type="0"/>
@@ -135,11 +137,11 @@
     <ROW XmlElement="InitialRotationPreference" ParentElement="VisualElements" Name="InitialRotationPreference" Order="0" Flags="0" Type="0"/>
     <ROW XmlElement="Logo" ParentElement="Properties" Name="Logo" Order="2" Flags="0" FileId="Store50x50Logo.scale100.png" Type="0"/>
     <ROW XmlElement="Package" Name="Package" Order="0" Flags="0" Type="6"/>
-    <ROW XmlElement="Properties" ParentElement="Package" Name="Properties" Order="2" Flags="0" Type="0"/>
+    <ROW XmlElement="Properties" ParentElement="Package" Name="Properties" Order="1" Flags="0" Type="0"/>
     <ROW XmlElement="PublisherDisplayName" ParentElement="Properties" Name="PublisherDisplayName" Order="0" Flags="0" Text="Vivitap" Type="0"/>
     <ROW XmlElement="Resource" ParentElement="Resources" Name="Resource" Order="0" Flags="0" Type="0"/>
     <ROW XmlElement="Resource_1" ParentElement="Resources" Name="Resource" Order="1" Flags="0" Type="0"/>
-    <ROW XmlElement="Resources" ParentElement="Package" Name="Resources" Order="1" Flags="0" Type="0"/>
+    <ROW XmlElement="Resources" ParentElement="Package" Name="Resources" Order="2" Flags="0" Type="0"/>
     <ROW XmlElement="Rotation" ParentElement="InitialRotationPreference" Name="Rotation" Order="0" Flags="0" Type="0"/>
     <ROW XmlElement="Rotation_1" ParentElement="InitialRotationPreference" Name="Rotation" Order="1" Flags="0" Type="0"/>
     <ROW XmlElement="Rotation_2" ParentElement="InitialRotationPreference" Name="Rotation" Order="2" Flags="0" Type="0"/>
@@ -202,6 +204,8 @@
     <ROW Feature_="MainFeature" Component_="contrac.exe"/>
     <ROW Feature_="MainFeature" Component_="SHORTCUTDIR"/>
     <ROW Feature_="AiAppXAssets" Component_="Store50x50Logo.scale100.png"/>
+    <ROW Feature_="MainFeature" Component_="GraphMin"/>
+    <ROW Feature_="MainFeature" Component_="GraphMax"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiInstExSeqComponent">
     <ROW Action="AI_DOWNGRADE" Condition="AI_NEWERPRODUCTFOUND AND (UILevel &lt;&gt; 5)" Sequence="210"/>
@@ -218,6 +222,8 @@
     <ROW Action="AI_EnableDebugLog" Sequence="51"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiRegsComponent">
+    <ROW Registry="GraphMax" Root="1" Key="Software\[Manufacturer]\[ProductName]" Name="GraphMax" Value="#75" Component_="GraphMax" VirtualValue="#"/>
+    <ROW Registry="GraphMin" Root="1" Key="Software\[Manufacturer]\[ProductName]" Name="GraphMin" Value="#0" Component_="GraphMin" VirtualValue="#"/>
     <ROW Registry="Path" Root="-1" Key="Software\[Manufacturer]\[ProductName]" Name="Path" Value="[APPDIR]" Component_="ProductInformation"/>
     <ROW Registry="Version" Root="-1" Key="Software\[Manufacturer]\[ProductName]" Name="Version" Value="[ProductVersion]" Component_="ProductInformation"/>
   </COMPONENT>

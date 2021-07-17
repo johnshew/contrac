@@ -215,19 +215,19 @@ pub struct App {
 
 impl App {
     fn on_window_init(&self) {
-        let _result = self.load_registry_settings();
-        self.data.borrow_mut().registry_loaded = true;        
+        self.log.set_text("Starting");
+        let result = self.load_registry_settings();
+        if let Err(_e) = result {
+            self.app_log_write(&format!("Registry settings not found"));
+        }
+        self.data.borrow_mut().registry_loaded = true;
         let (min, max) = {
             let data = self.data.borrow();
             (data.graph_min, data.graph_max)
         };
         self.graph.init(GRAPH_BAR_COUNT, min, max);
         self.graph.on_resize();
-        let message = &format!(
-            "Started at {}",
-            self.data.borrow().app_start.format("%F at %r")
-        );
-        self.log.set_text(message);
+        self.app_log_write("Running");
     }
 
     fn load_registry_settings(&self) -> Result<()> {
@@ -242,31 +242,35 @@ impl App {
     }
 
     fn save_registry_settings(&self) -> Result<()> {
-        let data = self.data.borrow();
-        if !data.registry_loaded {
+        if !self.data.borrow().registry_loaded {
             bail!("Registry not loaded yet");
         }
         let reg = RegKey::predef(HKEY_CURRENT_USER);
-        let result = reg.create_subkey("SOFTWARE\\Vivitap\\Contrac");
-        let subkey = match result {
+        let subkey = match reg.create_subkey("SOFTWARE\\Vivitap\\Contrac") {
             Ok((key, _disposition)) => key,
-            Err(e) => panic!("Problem creating the file: {:?}", e),
+            Err(_e) => bail!("Registry read"),
         };
-        subkey.set_value("GraphMin", &(data.graph_min as u32))?;
-        subkey.set_value("GraphMax", &(data.graph_max as u32))?;
+        {
+            let data = self.data.borrow();
+            subkey.set_value("GraphMin", &(data.graph_min as u32))?;
+            subkey.set_value("GraphMax", &(data.graph_max as u32))?;
+        }
         Ok(())
     }
 
     fn on_graph_min_max_change(&self) {
         let (min, max) = self.graph.get_min_max();
+        let mut changed = false;
         {
             let mut data = self.data.borrow_mut();
             if min != data.graph_min || max != data.graph_max {
                 data.graph_min = min;
                 data.graph_max = max;
+                changed = true;
             }
         }
-        let _ = self.save_registry_settings();
+        if !changed { return; }
+        if let Err(e) = self.save_registry_settings() { self.app_log_write(&format!("Problem creating the file: {:?}", e)) };
     }
 
     fn app_log_write(&self, message: &str) {
