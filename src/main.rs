@@ -26,7 +26,6 @@ use nwg::stretch::{
 use nwg::NativeUi;
 
 mod graph;
-mod observables;
 mod stats;
 mod utils;
 

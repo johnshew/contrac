@@ -7,7 +7,6 @@ extern crate native_windows_gui as nwg;
 
 use nwd::NwgPartial;
 
-use super::observables::*;
 use super::stats;
 use super::utils;
 use crate::Sample;
@@ -110,11 +109,7 @@ impl GraphUi {
             300
         };
         let mut min = if let Ok(v) = self.min_select.text().parse::<u16>() {
-            if v < 0 {
-                0
-            } else {
-                v
-            }
+            v
         } else {
             0
         };
@@ -248,7 +243,7 @@ impl GraphUi {
     }
 }
 
-fn pin<T: PartialOrd>(value: T, min: T, max: T) -> T {
+fn _clip<T: PartialOrd>(value: T, min: T, max: T) -> T {
     let mut result = value;
     if result < min {
         result = min;
