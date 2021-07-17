@@ -7,17 +7,23 @@ extern crate native_windows_gui as nwg;
 
 use nwd::NwgPartial;
 
+use super::observables::*;
 use super::stats;
 use super::utils;
 use crate::Sample;
 
-const GRAPH_INTERVAL_MILLIS : i64 = 1000;
+const GRAPH_INTERVAL_MILLIS: i64 = 1000;
+
+trait GraphUpdatedCallback {
+    fn update(&self);
+}
 
 pub struct GraphData {
     bar_count: u16,
     min: u16,
     max: u16,
     bars: Vec<stats::Stats<u16>>,
+    // subject: Subject<'a>,
 }
 
 impl Default for GraphData {
@@ -27,9 +33,11 @@ impl Default for GraphData {
             min: u16::MAX,
             max: 0,
             bars: Vec::new(),
+            // subject: Subject::new(),
         }
     }
 }
+impl GraphData {}
 
 #[derive(Default, NwgPartial)]
 pub struct GraphUi {
@@ -48,14 +56,13 @@ pub struct GraphUi {
 
     #[nwg_control(parent: outer_frame, size: (50,25), text: "30", limit:3,  flags: "NUMBER")]
     #[nwg_events( OnTextInput: [GraphUi::on_min_max_click])]
-    max_select: nwg::TextInput,
+    pub max_select: nwg::TextInput,
 
     #[nwg_control(parent: outer_frame, size: (50,25), text: "0", limit:3, flags: "NUMBER")]
     #[nwg_events( OnTextInput: [GraphUi::on_min_max_click])]
-    min_select: nwg::TextInput,
+    pub min_select: nwg::TextInput,
 
     bars: RefCell<Vec<nwg::ImageFrame>>,
-
     // tooltips: nwg::Tooltip,
 }
 
@@ -86,21 +93,28 @@ impl GraphUi {
                     .resize_with(graph_bars_len as usize, Default::default);
             }
         }
-
-        self.min_select.set_text(&format!("{}", min));
-        self.max_select.set_text(&format!("{}", max));
+        let (min, max) = (format!("{}", min), format!("{}", max));
+        self.min_select.set_text(&min);
+        self.max_select.set_text(&max);
         self.min_select.set_visible(true);
         self.max_select.set_visible(true);
     }
 
-    pub fn on_min_max_click(&self) {
-        let mut max = if let Ok(v) = self.max_select.text().parse::<u16>() {
-            v
+    pub fn on_min_max_click(&self) {        let mut max = if let Ok(v) = self.max_select.text().parse::<u16>() {
+            if v > 300 {
+                300
+            } else {
+                v
+            }
         } else {
             300
         };
         let mut min = if let Ok(v) = self.min_select.text().parse::<u16>() {
-            v
+            if v < 0 {
+                0
+            } else {
+                v
+            }
         } else {
             0
         };
@@ -115,6 +129,11 @@ impl GraphUi {
             data.min = min;
             data.max = max;
         }
+    }
+
+    pub fn get_min_max(&self) -> (u16, u16) {
+        let data = self.data.borrow();
+        (data.min, data.max)
     }
 
     pub fn set_values(&self, samples: &VecDeque<Sample>) {
@@ -164,7 +183,6 @@ impl GraphUi {
     }
 
     pub fn on_resize(&self) {
-        
         let (ow, oh) = self.outer_frame.size();
 
         let (_max_w, max_h) = self.max_select.size();
@@ -192,6 +210,7 @@ impl GraphUi {
                 let mut high = bar.max;
 
                 // Clip
+
                 if low < data.min {
                     low = data.min;
                 }
@@ -225,6 +244,17 @@ impl GraphUi {
             } else {
                 graph_bar.set_visible(false);
             }
-        }     
+        }
     }
+}
+
+fn pin<T: PartialOrd>(value: T, min: T, max: T) -> T {
+    let mut result = value;
+    if result < min {
+        result = min;
+    };
+    if result > max {
+        result = max;
+    };
+    return result;
 }

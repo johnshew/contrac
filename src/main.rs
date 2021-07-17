@@ -1,6 +1,6 @@
 #![windows_subsystem = "windows"]
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Duration, Local};
 use directories::UserDirs;
 use std::cell::RefCell;
@@ -13,6 +13,8 @@ use std::thread; // ::{spawn, JoinHandle};
 use std::time::{SystemTime, UNIX_EPOCH};
 use winapi::um::winuser::{SC_RESTORE, WM_SYSCOMMAND};
 use winping::{Buffer, Pinger};
+use winreg::enums::*;
+use winreg::RegKey;
 
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
@@ -24,14 +26,17 @@ use nwg::stretch::{
 use nwg::NativeUi;
 
 mod graph;
+mod observables;
 mod stats;
 mod utils;
 
 use crate::graph::*;
 
+const MIN_PING_TIME_MILLIS: u32 = 1010;
 const GRAPH_REFRESH_MILLIS: i64 = 250;
 const MIN_TIMEOUT_INTERVAL_MILLIS: i64 = 1000;
 const AUTO_SAVE_MINS: i64 = 5;
+const GRAPH_BAR_COUNT: u16 = 40;
 
 pub type Sample = (IpAddr, u128, Option<u16>);
 
@@ -41,12 +46,15 @@ pub struct AppData {
     min: u16,
     max: u16,
     samples: VecDeque<Sample>,
+    registry_loaded: bool,
+    graph_min: u16,
+    graph_max: u16,
     last_full_update: DateTime<Local>,
     last_sample_display_timeout_notification: bool,
     timeout_start: Option<DateTime<Local>>,
     samples_receiver: Receiver<Sample>,
     samples_sender: Sender<Sample>,
-    _app_start: DateTime<Local>,
+    app_start: DateTime<Local>,
     log_identifier: String,
     last_saved: DateTime<Local>,
 }
@@ -61,12 +69,15 @@ impl Default for AppData {
             min: u16::MAX,
             max: 0,
             samples: VecDeque::new(),
+            registry_loaded: false,
+            graph_min: 0,
+            graph_max: 100,
             last_full_update: Local::now(),
             last_sample_display_timeout_notification: false,
             timeout_start: None,
             samples_receiver: r,
             samples_sender: s,
-            _app_start: now,
+            app_start: now,
             log_identifier: format!("{}", now.format("%Y-%m-%d %H-%M-%S-%3f %z")),
             last_saved: Local::now(),
         }
@@ -162,6 +173,8 @@ pub struct App {
     graph_frame: nwg::Frame,
 
     #[nwg_partial(parent: graph_frame)]
+    #[nwg_events( (max_select, OnTextInput): [App::on_graph_min_max_change],
+                  (min_select, OnTextInput): [App::on_graph_min_max_change] )]
     graph: GraphUi,
 
     #[nwg_control(text: "", flags:"NONE")]
@@ -199,24 +212,62 @@ pub struct App {
 
     #[nwg_control(parent: window)]
     message: nwg::StatusBar,
-
-    // Tracbar for displaying - not currently used.
-    #[nwg_control( flags:"HORIZONTAL|RANGE")] // not visible
-    // #[nwg_layout_item(layout: main_layout, min_size: Size { width: D::Percent(1.0), height: D::Points(40.0)}, max_size: Size { width: D::Percent(1.0), height: D::Points(40.0)})]
-    slider: nwg::TrackBar,
 }
 
 impl App {
     fn on_window_init(&self) {
-        self.slider.set_range_min(0);
-        self.slider.set_range_max(100);
-        self.graph.init(40, 0, 50);
+        let _result = self.load_registry_settings();
+        self.data.borrow_mut().registry_loaded = true;        
+        let (min, max) = {
+            let data = self.data.borrow();
+            (data.graph_min, data.graph_max)
+        };
+        self.graph.init(GRAPH_BAR_COUNT, min, max);
         self.graph.on_resize();
         let message = &format!(
             "Started at {}",
-            self.data.borrow()._app_start.format("%F at %r")
+            self.data.borrow().app_start.format("%F at %r")
         );
         self.log.set_text(message);
+    }
+
+    fn load_registry_settings(&self) -> Result<()> {
+        let reg = RegKey::predef(HKEY_CURRENT_USER);
+        let subkey = reg.open_subkey("SOFTWARE\\Vivitap\\Contrac")?;
+        let min: u32 = subkey.get_value("GraphMin")?;
+        let max: u32 = subkey.get_value("GraphMax")?;
+        let mut data = self.data.borrow_mut();
+        data.graph_min = min as u16;
+        data.graph_max = max as u16;
+        Ok(())
+    }
+
+    fn save_registry_settings(&self) -> Result<()> {
+        let data = self.data.borrow();
+        if !data.registry_loaded {
+            bail!("Registry not loaded yet");
+        }
+        let reg = RegKey::predef(HKEY_CURRENT_USER);
+        let result = reg.create_subkey("SOFTWARE\\Vivitap\\Contrac");
+        let subkey = match result {
+            Ok((key, _disposition)) => key,
+            Err(e) => panic!("Problem creating the file: {:?}", e),
+        };
+        subkey.set_value("GraphMin", &(data.graph_min as u32))?;
+        subkey.set_value("GraphMax", &(data.graph_max as u32))?;
+        Ok(())
+    }
+
+    fn on_graph_min_max_change(&self) {
+        let (min, max) = self.graph.get_min_max();
+        {
+            let mut data = self.data.borrow_mut();
+            if min != data.graph_min || max != data.graph_max {
+                data.graph_min = min;
+                data.graph_max = max;
+            }
+        }
+        let _ = self.save_registry_settings();
     }
 
     fn app_log_write(&self, message: &str) {
@@ -273,9 +324,6 @@ impl App {
                     // dst,
                 );
                 self.message.set_text(0, &message);
-                self.slider.set_pos(rtt as usize);
-                self.slider
-                    .set_selection_range_pos(data.min as usize..data.max as usize);
             } else {
                 self.message.set_text(0, "Disconnected");
                 let datetime = utils::timestamp_to_datetime(timestamp as u128);
@@ -370,7 +418,7 @@ impl App {
             enum TimeoutTracker {
                 Active { start: DateTime<Local> },
                 Nominal,
-            };
+            }
             let data = self.data.borrow();
             let path = UserDirs::new()
                 .unwrap()
@@ -380,7 +428,7 @@ impl App {
             let full_path = String::from(path.to_str().unwrap());
             // self.app_log_write(&format!("writing to {}", full_path));
             let mut file = File::create(&path) // was format!("{} timeouts.log", documents.join(path: P), &data.log_identifier))
-                    .context(format!("unable to open '{:?}'", &full_path))?;
+                .context(format!("unable to open '{:?}'", &full_path))?;
             let mut timeout_status = TimeoutTracker::Nominal;
             for (_address, time, rtt) in &data.samples {
                 if rtt.is_some() {
@@ -462,10 +510,10 @@ fn main() -> Result<()> {
     nwg::Font::set_global_family("Segoe UI").context("Failed to set default font")?;
     let app = App::build_ui(Default::default()).context("Failed to build UI")?;
     let _pingers = vec![
-        app.spawn_pinger("1.1.1.2", 1010)?,        // CloudFlare
-        app.spawn_pinger("8.8.8.8", 1010)?,        // Google
-        app.spawn_pinger("208.67.222.222", 1010)?, // Cisco OpenDNS
-        app.spawn_pinger("9.9.9.9", 1010)?,        // Quad9
+        app.spawn_pinger("1.1.1.2", MIN_PING_TIME_MILLIS)?, // CloudFlare
+        app.spawn_pinger("8.8.8.8", MIN_PING_TIME_MILLIS)?, // Google
+        app.spawn_pinger("208.67.222.222", MIN_PING_TIME_MILLIS)?, // Cisco OpenDNS
+        app.spawn_pinger("9.9.9.9", MIN_PING_TIME_MILLIS)?, // Quad9
     ];
     nwg::dispatch_thread_events();
     Ok(())
