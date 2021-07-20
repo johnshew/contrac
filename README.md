@@ -18,11 +18,6 @@ Alternatively you can get the latest release of the .msix or .exe and run it:
 
 https://github.com/johnshew/contrac/releases
 
-## Notes
+## Thanks
 
 This was an interesting first project to learn Rust. Thanks to [Gabriel Dube](https://github.com/gabdube) for creating native-windows-gui, a nice toolkit for small native Win32 apps.
-
-## Recommended Visual Studio Extensions for Development
-
-* https://marketplace.visualstudio.com/items?itemName=rust-lang.rust
-* https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb

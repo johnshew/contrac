@@ -11,7 +11,6 @@ use std::net::IpAddr;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread; // ::{spawn, JoinHandle};
 use std::time::{SystemTime, UNIX_EPOCH};
-use winapi::um::winuser::{SC_RESTORE, WM_SYSCOMMAND};
 use winping::{Buffer, Pinger};
 use winreg::enums::*;
 use winreg::RegKey;
@@ -30,6 +29,7 @@ mod stats;
 mod utils;
 
 use crate::graph::*;
+use crate::utils::GetHostName;
 
 const MIN_PING_TIME_MILLIS: u32 = 1010;
 const GRAPH_REFRESH_MILLIS: i64 = 250;
@@ -53,7 +53,7 @@ pub struct AppData {
     timeout_start: Option<DateTime<Local>>,
     samples_receiver: Receiver<Sample>,
     samples_sender: Sender<Sample>,
-    app_start: DateTime<Local>,
+    _app_start: DateTime<Local>,
     log_identifier: String,
     last_saved: DateTime<Local>,
 }
@@ -62,7 +62,8 @@ impl Default for AppData {
     fn default() -> Self {
         let (s, r) = channel::<Sample>();
         let now = Local::now();
-        AppData {
+        let hostname = GetHostName().into_string().expect("Not a string");
+        Self {
             count: 0,
             total: 0,
             min: u16::MAX,
@@ -76,8 +77,8 @@ impl Default for AppData {
             timeout_start: None,
             samples_receiver: r,
             samples_sender: s,
-            app_start: now,
-            log_identifier: format!("{}", now.format("%Y-%m-%d %H-%M-%S-%3f %z")),
+            _app_start: now,
+            log_identifier: format!("{} {}", hostname, now.format("%Y-%m-%d %H-%M-%S-%3f %z")),
             last_saved: Local::now(),
         }
     }
@@ -104,7 +105,7 @@ impl AppData {
             .push_back((address, timestamp_in_nano, response_time_in_milli));
     }
 
-    fn sort(&mut self) {
+    fn sort_samples(&mut self) {
         self.samples
             .make_contiguous()
             .sort_by(|(_aa, at, _ap), (_ba, bt, _bp)| at.cmp(bt));
@@ -130,6 +131,14 @@ const PAD_SHRINK_1: Rect<D> = Rect {
     bottom: D::Points(-1.0),
 };
 
+const PAD_SHRINK_LEFT: Rect<D> = Rect {
+    start: D::Points(-1.0),
+    end: D::Points(0.0),
+    top: D::Points(0.0),
+    bottom: D::Points(0.0),
+};
+
+
 #[derive(Default, NwgUi)]
 pub struct App {
     data: RefCell<AppData>,
@@ -138,9 +147,9 @@ pub struct App {
     #[nwg_events( OnWindowClose: [App::on_window_close], OnInit: [App::on_window_init], OnWindowMinimize: [App::on_window_minimize] )]
     window: nwg::Window,
 
-    #[nwg_control(interval: 1000, stopped: false)]
+    #[nwg_control(interval: std::time::Duration::from_millis(300), active: true)]
     #[nwg_events( OnTimerTick: [App::on_timer_tick] )]
-    timer: nwg::Timer,
+    timer: nwg::AnimationTimer,
 
     #[nwg_resource]
     embed: nwg::EmbedResource,
@@ -185,7 +194,7 @@ pub struct App {
     log_label: nwg::Label,
 
     #[nwg_control(text: "", flags:"VISIBLE|VSCROLL")]
-    #[nwg_layout_item(layout: main_layout, margin: PAD_SHRINK_1,  min_size: Size { width: D::Percent(0.96), height: D::Points(100.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(100.0) },)]
+    #[nwg_layout_item(layout: main_layout, margin: PAD_SHRINK_LEFT,  min_size: Size { width: D::Percent(0.96), height: D::Points(100.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(100.0) },)]
     log: nwg::TextBox,
 
     #[nwg_control(flags: "VISIBLE")]
@@ -216,47 +225,22 @@ pub struct App {
 impl App {
     fn on_window_init(&self) {
         self.log.set_text("Starting");
-        let result = self.load_registry_settings();
-        if let Err(_e) = result {
-            self.app_log_write(&format!("Registry settings not found"));
+        let result = self.registry_settings_load();
+        if let Err(e) = result {
+            self.app_log_write(&format!("Registry loading issue: {}", e));
         }
         self.data.borrow_mut().registry_loaded = true;
         let (min, max) = {
             let data = self.data.borrow();
             (data.graph_min, data.graph_max)
         };
+        self.message.set_min_height(25); // not settable above
+        self.log.set_readonly(true); // not settable above
         self.graph.init(GRAPH_BAR_COUNT, min, max);
         self.graph.on_resize();
         self.app_log_write("Running");
     }
 
-    fn load_registry_settings(&self) -> Result<()> {
-        let reg = RegKey::predef(HKEY_CURRENT_USER);
-        let subkey = reg.open_subkey("SOFTWARE\\Vivitap\\Contrac")?;
-        let min: u32 = subkey.get_value("GraphMin")?;
-        let max: u32 = subkey.get_value("GraphMax")?;
-        let mut data = self.data.borrow_mut();
-        data.graph_min = min as u16;
-        data.graph_max = max as u16;
-        Ok(())
-    }
-
-    fn save_registry_settings(&self) -> Result<()> {
-        if !self.data.borrow().registry_loaded {
-            bail!("Registry not loaded yet");
-        }
-        let reg = RegKey::predef(HKEY_CURRENT_USER);
-        let subkey = match reg.create_subkey("SOFTWARE\\Vivitap\\Contrac") {
-            Ok((key, _disposition)) => key,
-            Err(_e) => bail!("Registry read"),
-        };
-        {
-            let data = self.data.borrow();
-            subkey.set_value("GraphMin", &(data.graph_min as u32))?;
-            subkey.set_value("GraphMax", &(data.graph_max as u32))?;
-        }
-        Ok(())
-    }
 
     fn on_graph_min_max_change(&self) {
         let (min, max) = self.graph.get_min_max();
@@ -270,19 +254,9 @@ impl App {
             }
         }
         if !changed { return; }
-        if let Err(e) = self.save_registry_settings() { self.app_log_write(&format!("Problem creating the file: {:?}", e)) };
+        if let Err(e) = self.registry_settings_save() { self.app_log_write(&format!("Registry saving issue: {:?}", e)) };
     }
 
-    fn app_log_write(&self, message: &str) {
-        let mut text = self.log.text();
-        text.push_str(&format!(
-            "\r\n{}: {}",
-            Local::now().format("%F %r"),
-            message
-        ));
-        self.log.set_text(&text);
-        utils::VScrollToBottom(&self.log.handle);
-    }
 
     fn on_reset_click(&self) {
         let mut data = self.data.borrow_mut();
@@ -299,6 +273,55 @@ impl App {
 
     fn on_window_minimize(&self) {
         self.window.set_visible(false);
+    }
+
+    fn on_timer_tick(&self) {
+        // check for info on the channel
+        let mut done = false;
+        while !done {
+            let sample;
+            {
+                let receiver = &self.data.borrow().samples_receiver;
+                sample = receiver.try_recv();
+            }
+            if let Ok(s) = sample {
+                self.process_sample(s);
+            } else {
+                done = true;
+            }
+        }
+
+        let datetime = Local::now();
+        {
+            let mut data = self.data.borrow_mut();
+            if datetime > (data.last_full_update + Duration::milliseconds(GRAPH_REFRESH_MILLIS)) {
+                data.sort_samples();
+                self.graph.set_values(&data.samples);
+                self.graph.on_resize();
+                data.last_full_update = datetime;
+            }
+        }
+
+        if (self.data.borrow().last_saved + Duration::minutes(AUTO_SAVE_MINS)) < datetime {
+            if let Err(err) = self.write_timeouts_log() {
+                self.app_log_write(&format!("{}", err));
+            }
+        }
+    }
+
+    fn on_save_report_menu_item_selected(&self) {
+        self.write_samples_log();
+        self.display_notification("Report saved");
+    }
+
+    fn on_tray_mouse_press_left_up(&self) {
+        self.window.set_visible(true);
+        self.window.restore();
+    }
+
+    fn on_tray_show_menu(&self) {
+        let (x, y) = nwg::GlobalCursor::position();
+        self.tray_menu.popup(x, y);
     }
 
     fn process_sample(&self, sample: Sample) {
@@ -324,7 +347,6 @@ impl App {
                     data.min,
                     data.max,
                     data.average(),
-                    // dst,
                 );
                 self.message.set_text(0, &message);
             } else {
@@ -346,55 +368,54 @@ impl App {
         }
     }
 
-    fn on_timer_tick(&self) {
-        // check for info on the channel
-        let mut done = false;
-        while !done {
-            let sample;
-            {
-                let receiver = &self.data.borrow().samples_receiver;
-                sample = receiver.try_recv();
-            }
-            if let Ok(s) = sample {
-                self.process_sample(s);
-            } else {
-                done = true;
-            }
-        }
 
-        let datetime = Local::now();
+    fn app_log_write(&self, message: &str) {
+        let mut text = self.log.text();
+        text.push_str(&format!(
+            "\r\n{}: {}",
+            Local::now().format("%F %r"),
+            message
+        ));
+        self.log.set_text(&text);
+        utils::VScrollToBottom(&self.log.handle);
+    }
+    
+
+    fn registry_settings_load(&self) -> Result<()> {
+        let reg = RegKey::predef(HKEY_CURRENT_USER);
+        let subkey = reg.open_subkey("SOFTWARE\\Vivitap\\Contrac")?;
+        let min: u32 = subkey.get_value("GraphMin")?;
+        let max: u32 = subkey.get_value("GraphMax")?;
+        let mut data = self.data.borrow_mut();
+        data.graph_min = min as u16;
+        data.graph_max = max as u16;
+        Ok(())
+    }
+
+    fn registry_settings_save(&self) -> Result<()> {
+        if !self.data.borrow().registry_loaded {
+            bail!("not loaded yet");
+        }
+        let reg = RegKey::predef(HKEY_CURRENT_USER);
+        let subkey = match reg.create_subkey("SOFTWARE\\Vivitap\\Contrac") {
+            Ok((key, _disposition)) => key,
+            Err(e) => bail!("read error {:?}",e),
+        };
         {
-            let mut data = self.data.borrow_mut();
-            if datetime > (data.last_full_update + Duration::milliseconds(GRAPH_REFRESH_MILLIS)) {
-                data.sort();
-                self.graph.set_values(&data.samples);
-                self.graph.on_resize();
-                data.last_full_update = datetime;
-            }
+            let data = self.data.borrow();
+            if let Err(e) = subkey.set_value("GraphMin", &(data.graph_min as u32)) { bail!("write error {}", e)};
+            if let Err(e) = subkey.set_value("GraphMax", &(data.graph_max as u32)) { bail! ("write error {}", e)};
         }
-
-        if (self.data.borrow().last_saved + Duration::minutes(AUTO_SAVE_MINS)) < datetime {
-            if let Err(err) = self.write_timeouts_log() {
-                self.app_log_write(&format!("{}", err));
-            }
-        }
+        Ok(())
     }
 
-    fn on_tray_show_menu(&self) {
-        let (x, y) = nwg::GlobalCursor::position();
-        self.tray_menu.popup(x, y);
-    }
-
-    fn on_tray_mouse_press_left_up(&self) {
-        self.window.set_visible(true);
-        utils::PostMessage(&self.window.handle, WM_SYSCOMMAND, SC_RESTORE, 0);
-    }
+    
 
     fn write_samples_log(&self) {
         self.app_log_write("Saving samples");
         {
             let mut data = self.data.borrow_mut();
-            data.sort();
+            data.sort_samples();
         }
 
         let data = self.data.borrow();
@@ -464,10 +485,7 @@ impl App {
         Ok(())
     }
 
-    fn on_save_report_menu_item_selected(&self) {
-        self.write_samples_log();
-        self.display_notification("Report saved");
-    }
+ 
 
     fn display_notification(&self, message: &str) {
         let flags = nwg::TrayNotificationFlags::USER_ICON | nwg::TrayNotificationFlags::LARGE_ICON;
