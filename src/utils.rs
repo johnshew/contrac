@@ -3,9 +3,11 @@
 use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Utc};
 use std::mem;
 
+use std::ffi::OsString;
+use std::io::Error;
+
 use winapi::shared::minwindef::{BOOL, LPARAM, LRESULT, UINT, WPARAM};
 use winapi::shared::windef::HWND;
-
 #[allow(unused_imports)]
 use winapi::um::winuser::{
     PostMessageW, SendMessageW, SetWindowPos, HWND_TOP, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE,
@@ -106,4 +108,45 @@ pub fn ScrollToBottom(control_handle: &nwg::ControlHandle) {
     unsafe {
         SetScrollInfo(handle, SB_VERT as _, &si, TRUE);
     }
+}
+
+pub fn GetHostName() -> OsString {
+    use std::os::windows::ffi::OsStringExt;
+    use winapi::ctypes::{c_ulong, wchar_t};
+    use winapi::um::sysinfoapi::{ComputerNamePhysicalDnsHostname, GetComputerNameExW};
+
+    let mut buffer_size: c_ulong = 0;
+
+    unsafe {
+        // This call always fails with ERROR_MORE_DATA, because we pass NULL to
+        // get the required buffer size.
+        GetComputerNameExW(
+            ComputerNamePhysicalDnsHostname,
+            std::ptr::null_mut(),
+            &mut buffer_size,
+        )
+    };
+
+    let mut buffer = vec![0 as wchar_t; buffer_size as usize];
+    let returncode = unsafe {
+        GetComputerNameExW(
+            ComputerNamePhysicalDnsHostname,
+            buffer.as_mut_ptr() as *mut wchar_t,
+            &mut buffer_size,
+        )
+    };
+    // GetComputerNameExW returns a non-zero value on success!
+    if returncode == 0 {
+        panic!(
+            "GetComputerNameExW failed to read hostname: {}
+Please report this issue to <https://github.com/lunaryorn/gethostname.rs/issues>!",
+            Error::last_os_error()
+        );
+    }
+
+    let end = buffer
+        .iter()
+        .position(|&b| b == 0)
+        .unwrap_or_else(|| buffer.len());
+    OsString::from_wide(&buffer[0..end])
 }

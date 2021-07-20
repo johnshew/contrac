@@ -30,6 +30,7 @@ mod stats;
 mod utils;
 
 use crate::graph::*;
+use crate::utils::GetHostName;
 
 const MIN_PING_TIME_MILLIS: u32 = 1010;
 const GRAPH_REFRESH_MILLIS: i64 = 250;
@@ -53,7 +54,7 @@ pub struct AppData {
     timeout_start: Option<DateTime<Local>>,
     samples_receiver: Receiver<Sample>,
     samples_sender: Sender<Sample>,
-    app_start: DateTime<Local>,
+    _app_start: DateTime<Local>,
     log_identifier: String,
     last_saved: DateTime<Local>,
 }
@@ -62,6 +63,7 @@ impl Default for AppData {
     fn default() -> Self {
         let (s, r) = channel::<Sample>();
         let now = Local::now();
+        let hostname = GetHostName().into_string().expect("Not a string");
         AppData {
             count: 0,
             total: 0,
@@ -76,8 +78,8 @@ impl Default for AppData {
             timeout_start: None,
             samples_receiver: r,
             samples_sender: s,
-            app_start: now,
-            log_identifier: format!("{}", now.format("%Y-%m-%d %H-%M-%S-%3f %z")),
+            _app_start: now,
+            log_identifier: format!("{} {}", hostname, now.format("%Y-%m-%d %H-%M-%S-%3f %z")),
             last_saved: Local::now(),
         }
     }
@@ -138,9 +140,9 @@ pub struct App {
     #[nwg_events( OnWindowClose: [App::on_window_close], OnInit: [App::on_window_init], OnWindowMinimize: [App::on_window_minimize] )]
     window: nwg::Window,
 
-    #[nwg_control(interval: 1000, stopped: false)]
+    #[nwg_control(interval: std::time::Duration::from_millis(300), active: true)]
     #[nwg_events( OnTimerTick: [App::on_timer_tick] )]
-    timer: nwg::Timer,
+    timer: nwg::AnimationTimer,
 
     #[nwg_resource]
     embed: nwg::EmbedResource,
@@ -248,7 +250,7 @@ impl App {
         let reg = RegKey::predef(HKEY_CURRENT_USER);
         let subkey = match reg.create_subkey("SOFTWARE\\Vivitap\\Contrac") {
             Ok((key, _disposition)) => key,
-            Err(_e) => bail!("Registry read"),
+            Err(e) => bail!("Registry read {:?}",e),
         };
         {
             let data = self.data.borrow();
@@ -270,7 +272,7 @@ impl App {
             }
         }
         if !changed { return; }
-        if let Err(e) = self.save_registry_settings() { self.app_log_write(&format!("Problem creating the file: {:?}", e)) };
+        if let Err(e) = self.save_registry_settings() { self.app_log_write(&format!("Problem saving to the registry: {:?}", e)) };
     }
 
     fn app_log_write(&self, message: &str) {
