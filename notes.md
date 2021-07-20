@@ -7,6 +7,12 @@
 * Need to create the MSIX first
   * Update the version number in corgo.toml
   * Update the version number in AAI
+  * x64
+    * cargo build --release 
+    * set x64 in AAI and build MSIX
+  * x86
+    * rustup run stable-i686-pc-windows-msvc cargo build --release
+    * set x86 in AAI and build MSIX
   * To run locally you might need to create a new cert and set it.
   * Remember that the packager takes the release not debug target
   * Remember to build both x86 and x64 versions
@@ -25,8 +31,6 @@ rustup run stable-i686-pc-windows-msvc cargo build --release
 ```
 In Advanced Application Install go to Package Definitions / Builds and set to x86
 
-## Things to watch when building for the store
-
 # Overall Approach and Learnings
 On Windows, by default, Rust starts a console.  If you want a Windows app put the following at the top of main.rs.
 ```
@@ -42,3 +46,8 @@ The graph rendering in Contrac is a hack.  Since there are currently no easy-to-
   * Provide more access to the nwg::win32 helper functions
   * Add utility functions to edit box for scrolling
 
+
+## Recommended Visual Studio Extensions for Development
+
+* https://marketplace.visualstudio.com/items?itemName=rust-lang.rust
+* https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb

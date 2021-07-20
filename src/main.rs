@@ -132,13 +132,6 @@ const PAD_SHRINK_1: Rect<D> = Rect {
     bottom: D::Points(-1.0),
 };
 
-const PAD_NONE: Rect<D> = Rect {
-    start: D::Points(0.0),
-    end: D::Points(0.0),
-    top: D::Points(0.0),
-    bottom: D::Points(0.0),
-};
-
 const PAD_SHRINK_LEFT: Rect<D> = Rect {
     start: D::Points(-1.0),
     end: D::Points(0.0),
