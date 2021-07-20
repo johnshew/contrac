@@ -132,6 +132,21 @@ const PAD_SHRINK_1: Rect<D> = Rect {
     bottom: D::Points(-1.0),
 };
 
+const PAD_NONE: Rect<D> = Rect {
+    start: D::Points(0.0),
+    end: D::Points(0.0),
+    top: D::Points(0.0),
+    bottom: D::Points(0.0),
+};
+
+const PAD_SHRINK_LEFT: Rect<D> = Rect {
+    start: D::Points(-1.0),
+    end: D::Points(0.0),
+    top: D::Points(0.0),
+    bottom: D::Points(0.0),
+};
+
+
 #[derive(Default, NwgUi)]
 pub struct App {
     data: RefCell<AppData>,
@@ -187,7 +202,7 @@ pub struct App {
     log_label: nwg::Label,
 
     #[nwg_control(text: "", flags:"VISIBLE|VSCROLL")]
-    #[nwg_layout_item(layout: main_layout, margin: PAD_SHRINK_1,  min_size: Size { width: D::Percent(0.96), height: D::Points(100.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(100.0) },)]
+    #[nwg_layout_item(layout: main_layout, margin: PAD_SHRINK_LEFT,  min_size: Size { width: D::Percent(0.96), height: D::Points(100.0) }, max_size: Size { width: D::Percent(1.0), height: D::Points(100.0) },)]
     log: nwg::TextBox,
 
     #[nwg_control(flags: "VISIBLE")]
@@ -227,6 +242,7 @@ impl App {
             let data = self.data.borrow();
             (data.graph_min, data.graph_max)
         };
+        self.message.set_min_height(25); // not settable above
         self.graph.init(GRAPH_BAR_COUNT, min, max);
         self.graph.on_resize();
         self.app_log_write("Running");
