@@ -211,7 +211,7 @@ pub struct App {
 
     #[nwg_control(parent: status_frame, focus: true, text: "Close")]
     #[nwg_layout_item(layout: status_layout, margin: PAD_2, size: Size { width: D::Points(150.0), height: D::Points(40.0) },)]
-    #[nwg_events( OnButtonClick: [App::on_window_close] )]
+    #[nwg_events( OnButtonClick: [App::on_close_button] )]
     close_button: nwg::Button,
 
     #[nwg_control(text: "", flags:"NONE")]
@@ -265,6 +265,11 @@ impl App {
         data.min = u16::MAX;
         data.max = 0;
     }
+
+    fn on_close_button(&self) {
+        self.window.close();
+    }
+
 
     fn on_window_close(&self) {
         self.write_timeouts_log().unwrap();
