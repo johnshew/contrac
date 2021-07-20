@@ -5,13 +5,15 @@
 ## MSIX and getting it to the Store
 
 * Need to create the MSIX first
-  * Update the version number
+  * Update the version number in corgo.toml
+  * Update the version number in AAI
   * To run locally you might need to create a new cert and set it.
-  * Remember that the packager takes the release not debug candidate
+  * Remember that the packager takes the release not debug target
   * Remember to build both x86 and x64 versions
 
 * Bundle up the files to github and label the release
-  * Maybe need to set the tag first?
+  * Drag the two MSIX and maybe two exes to the release
+  * Add a tag of the form v0.n.0
 
 * Submit to store
   * https://partner.microsoft.com/en-us/dashboard/windows/overview
