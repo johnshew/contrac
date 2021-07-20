@@ -219,8 +219,8 @@ impl App {
     fn on_window_init(&self) {
         self.log.set_text("Starting");
         let result = self.load_registry_settings();
-        if let Err(_e) = result {
-            self.app_log_write(&format!("Registry settings not found"));
+        if let Err(e) = result {
+            self.app_log_write(&format!("Registry settings: {}", e));
         }
         self.data.borrow_mut().registry_loaded = true;
         let (min, max) = {
@@ -245,17 +245,17 @@ impl App {
 
     fn save_registry_settings(&self) -> Result<()> {
         if !self.data.borrow().registry_loaded {
-            bail!("Registry not loaded yet");
+            bail!("not loaded yet");
         }
         let reg = RegKey::predef(HKEY_CURRENT_USER);
         let subkey = match reg.create_subkey("SOFTWARE\\Vivitap\\Contrac") {
             Ok((key, _disposition)) => key,
-            Err(e) => bail!("Registry read {:?}",e),
+            Err(e) => bail!("read error {:?}",e),
         };
         {
             let data = self.data.borrow();
-            subkey.set_value("GraphMin", &(data.graph_min as u32))?;
-            subkey.set_value("GraphMax", &(data.graph_max as u32))?;
+            if let Err(e) = subkey.set_value("GraphMin", &(data.graph_min as u32)) { bail!("write error {}", e)};
+            if let Err(e) = subkey.set_value("GraphMax", &(data.graph_max as u32)) { bail! ("write error {}", e)};
         }
         Ok(())
     }
