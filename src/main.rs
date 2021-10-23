@@ -255,6 +255,7 @@ impl App {
         }
         if !changed { return; }
         if let Err(e) = self.registry_settings_save() { self.app_log_write(&format!("Registry saving issue: {:?}", e)) };
+        // self.graph.set_min_max(min,max);
     }
 
 

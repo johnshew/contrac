@@ -12,6 +12,9 @@ use super::utils;
 use crate::Sample;
 
 const GRAPH_INTERVAL_MILLIS: i64 = 1000;
+const GRAPH_MAX_MILLIS: u16 = 1500;
+const GRAPH_MAX_MILLIS_DEFAULT: u16 = 100;
+const GRAPH_MIN_MILLIS: u16 = 0;
 
 trait GraphUpdatedCallback {
     fn update(&self);
@@ -53,12 +56,12 @@ pub struct GraphUi {
     #[nwg_control(parent: outer_frame, flags: "VISIBLE")]
     frame: nwg::Frame,
 
-    #[nwg_control(parent: outer_frame, size: (50,25), text: "30", limit:3,  flags: "NUMBER")]
-    #[nwg_events( OnTextInput: [GraphUi::on_min_max_click])]
+    #[nwg_control(parent: outer_frame, size: (50,25), text: "30", limit:4,  flags: "NUMBER")]
+    #[nwg_events( OnTextInput: [GraphUi::on_min_max_changed])]
     pub max_select: nwg::TextInput,
 
-    #[nwg_control(parent: outer_frame, size: (50,25), text: "0", limit:3, flags: "NUMBER")]
-    #[nwg_events( OnTextInput: [GraphUi::on_min_max_click])]
+    #[nwg_control(parent: outer_frame, size: (50,25), text: "0", limit:4, flags: "NUMBER")]
+    #[nwg_events( OnTextInput: [GraphUi::on_min_max_changed])]
     pub min_select: nwg::TextInput,
 
     bars: RefCell<Vec<nwg::ImageFrame>>,
@@ -99,14 +102,15 @@ impl GraphUi {
         self.max_select.set_visible(true);
     }
 
-    pub fn on_min_max_click(&self) {        let mut max = if let Ok(v) = self.max_select.text().parse::<u16>() {
-            if v > 300 {
-                300
+    pub fn on_min_max_changed(&self) {
+        let mut max = if let Ok(v) = self.max_select.text().parse::<u16>() {
+            if v > GRAPH_MAX_MILLIS {
+                GRAPH_MAX_MILLIS
             } else {
                 v
             }
         } else {
-            300
+            GRAPH_MAX_MILLIS_DEFAULT
         };
         let mut min = if let Ok(v) = self.min_select.text().parse::<u16>() {
             v
@@ -119,16 +123,27 @@ impl GraphUi {
         if min > max {
             min = max - 10;
         }
+        // self.set_min_max(min, max);
         {
-            let mut data = self.data.borrow_mut();
-            data.min = min;
-            data.max = max;
+            if let Ok(mut data) = self.data.try_borrow_mut() {
+                data.min = min;
+                data.max = max;
+            }
         }
     }
 
     pub fn get_min_max(&self) -> (u16, u16) {
         let data = self.data.borrow();
         (data.min, data.max)
+    }
+
+    pub fn set_min_max(&self, min: u16, max: u16) {
+        if let Ok(mut data) = self.data.try_borrow_mut() {
+            data.min = min;
+            data.max = max;
+            self.max_select.set_text(&format!("{}", max));
+            self.min_select.set_text(&format!("{}", min));
+        }
     }
 
     pub fn set_values(&self, samples: &VecDeque<Sample>) {
